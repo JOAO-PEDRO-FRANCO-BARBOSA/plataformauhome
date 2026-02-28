@@ -4,23 +4,25 @@ import { MatchCard } from '@/components/MatchCard';
 import { ContactModal } from '@/components/ContactModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { GraduationCap, Percent, MessageCircle } from 'lucide-react';
+import { GraduationCap, Percent, MessageCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export default function MatchPage() {
-  const { pending, connected, loading, connect, skip } = useMatches();
+  const { available, pending, connected, loading, connect, skip } = useMatches();
   const [contactOpen, setContactOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleConnect = (id: string) => {
     connect(id);
-    toast.success('Match feito! 🎉 Vocês foram conectados.');
+    toast('Pedido de conexão enviado! ⏳');
   };
 
   const handleSkip = (id: string) => {
     skip(id);
   };
 
-  const current = pending[0];
+  const current = available[0];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -44,32 +46,54 @@ export default function MatchPage() {
           )}
         </div>
 
-        {/* Connected list */}
-        <div className="space-y-3">
-          <h2 className="font-semibold text-lg">Conexões ({connected.length})</h2>
-          {connected.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma conexão ainda.</p>
-          ) : (
-            connected.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
-                <img src={m.student.avatar} alt={m.student.name} className="w-10 h-10 rounded-full object-cover" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{m.student.name}</p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <GraduationCap className="w-3 h-3" />
-                    {m.student.course}
+        {/* Sidebar */}
+        <div className="space-y-4">
+          {/* Pending */}
+          {pending.length > 0 && (
+            <div className="space-y-2">
+              <h2 className="font-semibold text-lg flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                Pendentes ({pending.length})
+              </h2>
+              {pending.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-dashed">
+                  <img src={m.student.avatar} alt={m.student.name} className="w-10 h-10 rounded-full object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{m.student.name}</p>
+                    <p className="text-xs text-muted-foreground">Aguardando resposta...</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-semibold text-primary">
-                  <Percent className="w-3 h-3" />
-                  {m.compatibility}%
-                </div>
-                <Button size="icon" variant="ghost" onClick={() => setContactOpen(true)}>
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
-              </div>
-            ))
+              ))}
+            </div>
           )}
+
+          {/* Connected */}
+          <div className="space-y-2">
+            <h2 className="font-semibold text-lg">Conexões ({connected.length})</h2>
+            {connected.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma conexão ainda.</p>
+            ) : (
+              connected.map((m) => (
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
+                  <img src={m.student.avatar} alt={m.student.name} className="w-10 h-10 rounded-full object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{m.student.name}</p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <GraduationCap className="w-3 h-3" />
+                      {m.student.course}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-primary">
+                    <Percent className="w-3 h-3" />
+                    {m.compatibility}%
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => navigate('/messages')}>
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
