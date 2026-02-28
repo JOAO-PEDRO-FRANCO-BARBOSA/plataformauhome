@@ -1,7 +1,17 @@
-import { Outlet, useLocation } from 'react-router-dom';
-import { Home, Search, Users, User } from 'lucide-react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Search, Users, User, Plus, MessageSquare, LogOut } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +25,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 const navItems = [
@@ -27,7 +38,6 @@ const navItems = [
 function DesktopSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -81,18 +91,79 @@ function MobileBottomNav() {
   );
 }
 
+function UserMenu() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="rounded-full ring-2 ring-primary/20 hover:ring-primary/50 transition-all">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={user?.avatar} alt={user?.name} />
+            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+          <User className="mr-2 h-4 w-4" />
+          Meu Perfil
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => toast({ title: 'Em breve!', description: 'Mensagens estará disponível em breve.' })}
+          className="cursor-pointer"
+        >
+          <MessageSquare className="mr-2 h-4 w-4" />
+          Mensagens
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => { logout(); navigate('/login'); }}
+          className="cursor-pointer text-destructive focus:text-destructive"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function AppLayout() {
   const isMobile = useIsMobile();
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         {!isMobile && <DesktopSidebar />}
         <div className="flex-1 flex flex-col min-h-screen">
-          <header className="h-14 flex items-center border-b px-4 gap-3 bg-card sticky top-0 z-40">
-            {!isMobile && <SidebarTrigger />}
-            <img src={logoImg} alt="Uhome" className="h-7 w-7 object-contain md:hidden" />
-            <span className="font-bold text-primary md:hidden">Uhome</span>
+          <header className="h-14 flex items-center justify-between border-b px-4 gap-3 bg-card sticky top-0 z-40">
+            <div className="flex items-center gap-3">
+              {!isMobile && <SidebarTrigger />}
+              <img src={logoImg} alt="Uhome" className="h-7 w-7 object-contain md:hidden" />
+              <span className="font-bold text-primary md:hidden">Uhome</span>
+            </div>
+            {isLoggedIn && (
+              <div className="flex items-center gap-2">
+                {isMobile ? (
+                  <Button size="icon" variant="default" onClick={() => navigate('/marketplace')} className="h-8 w-8">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={() => navigate('/marketplace')} className="gap-1.5">
+                    <Plus className="h-4 w-4" />
+                    Anunciar Imóvel / Vaga
+                  </Button>
+                )}
+                <UserMenu />
+              </div>
+            )}
           </header>
           <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
             <Outlet />
