@@ -32,6 +32,7 @@ const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: Home },
   { title: 'Marketplace', url: '/marketplace', icon: Search },
   { title: 'Match', url: '/match', icon: Users },
+  { title: 'Mensagens', url: '/messages', icon: MessageSquare },
   { title: 'Perfil', url: '/profile', icon: User },
 ];
 
@@ -113,10 +114,7 @@ function UserMenu() {
           <User className="mr-2 h-4 w-4" />
           Meu Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => toast({ title: 'Em breve!', description: 'Mensagens estará disponível em breve.' })}
-          className="cursor-pointer"
-        >
+        <DropdownMenuItem onClick={() => navigate('/messages')} className="cursor-pointer">
           <MessageSquare className="mr-2 h-4 w-4" />
           Mensagens
         </DropdownMenuItem>

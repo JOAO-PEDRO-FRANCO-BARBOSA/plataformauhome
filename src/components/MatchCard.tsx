@@ -2,7 +2,7 @@ import { Match } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HabitBadges } from './HabitBadges';
-import { X, Heart, GraduationCap, Percent } from 'lucide-react';
+import { X, UserPlus, GraduationCap, Percent, Clock } from 'lucide-react';
 
 interface MatchCardProps {
   match: Match;
@@ -11,7 +11,8 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match, onConnect, onSkip }: MatchCardProps) {
-  const { student, compatibility } = match;
+  const { student, compatibility, status } = match;
+  const isPending = status === 'pending';
 
   return (
     <Card className="overflow-hidden max-w-sm mx-auto shadow-xl">
@@ -45,6 +46,7 @@ export function MatchCard({ match, onConnect, onSkip }: MatchCardProps) {
             size="lg"
             className="flex-1 border-destructive text-destructive hover:bg-destructive/10"
             onClick={() => onSkip(match.id)}
+            disabled={isPending}
           >
             <X className="w-5 h-5 mr-1" /> Pular
           </Button>
@@ -52,8 +54,13 @@ export function MatchCard({ match, onConnect, onSkip }: MatchCardProps) {
             size="lg"
             className="flex-1"
             onClick={() => onConnect(match.id)}
+            disabled={isPending}
           >
-            <Heart className="w-5 h-5 mr-1" /> Conectar
+            {isPending ? (
+              <><Clock className="w-5 h-5 mr-1" /> Pendente</>
+            ) : (
+              <><UserPlus className="w-5 h-5 mr-1" /> Pedir Conexão</>
+            )}
           </Button>
         </div>
       </CardContent>

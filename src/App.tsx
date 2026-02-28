@@ -10,6 +10,7 @@ import Marketplace from "@/pages/Marketplace";
 import PropertyDetails from "@/pages/PropertyDetails";
 import MatchPage from "@/pages/MatchPage";
 import Profile from "@/pages/Profile";
+import Messages from "@/pages/Messages";
 import Onboarding from "@/pages/Onboarding";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/marketplace/:id" element={<PropertyDetails />} />
               <Route path="/match" element={<MatchPage />} />
+              <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
