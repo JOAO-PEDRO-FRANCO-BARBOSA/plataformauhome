@@ -150,11 +150,11 @@ export function AppLayout() {
             {isLoggedIn && (
               <div className="flex items-center gap-2">
                 {isMobile ? (
-                  <Button size="icon" variant="default" onClick={() => navigate('/marketplace')} className="h-8 w-8">
+                  <Button size="icon" variant="default" onClick={() => navigate('/host/new')} className="h-8 w-8">
                     <Plus className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button size="sm" onClick={() => navigate('/marketplace')} className="gap-1.5">
+                  <Button size="sm" onClick={() => navigate('/host/new')} className="gap-1.5">
                     <Plus className="h-4 w-4" />
                     Anunciar Imóvel / Vaga
                   </Button>

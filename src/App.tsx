@@ -15,7 +15,9 @@ import Onboarding from "@/pages/Onboarding";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
+import HostDashboard from "@/pages/HostDashboard";
 import NotFound from "./pages/NotFound";
+import { PropertyWizard } from "@/components/PropertyWizard";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,8 @@ const App = () => (
               <Route path="/match" element={<MatchPage />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/host" element={<HostDashboard />} />
+              <Route path="/host/new" element={<PropertyWizard />} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />
