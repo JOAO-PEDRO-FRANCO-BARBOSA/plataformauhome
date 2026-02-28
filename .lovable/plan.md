@@ -1,61 +1,53 @@
 
 
-# Sprint 1: Auth e Layout — Fundação Universal
+# Sprint 2: Marketplace Vitrine QuintoAndar
 
 ## O que muda
 
-Adicionar telas de autenticação (Login, Cadastro, Recuperação de Senha) com estado mockado, e refatorar o header/navbar para incluir avatar com dropdown e botão CTA "Anunciar Imóvel / Vaga".
+Upgrade completo do Marketplace: adicionar `images[]` e `acceptsPet` aos dados, carrossel de imagens nos cards, filtro "Aceita Pet", sidebar de filtros colapsável no mobile, e página de detalhes do imóvel com hero de imagens + comodidades em grid.
 
-## Arquivos novos
+## Alterações
 
-### 1. `src/contexts/AuthContext.tsx`
-- Context com `isLoggedIn`, `user` (mockCurrentUser), `login()`, `logout()`, `register()`
-- Estado local via `useState`, sem backend
-- Provider wrapping the app
+### 1. `src/types/index.ts` — Expandir Property
+- `image: string` → `images: string[]` (array de 3-4 fotos Unsplash)
+- Adicionar `acceptsPet: boolean`
+- Adicionar `acceptsPet` ao `PropertyFilters`
 
-### 2. `src/pages/Login.tsx`
-- Formulário limpo: E-mail + Senha
-- Botão "Entrar" (chama `login()` do context, navega para `/dashboard`)
-- Link "Criar conta" → `/register`
-- Link "Esqueci minha senha" → `/forgot-password`
-- Logo Uhome no topo, fundo com gradiente roxo sutil
+### 2. `src/data/mockData.ts` — Enriquecer mock data
+- Cada propriedade ganha `images: string[]` (3-4 URLs Unsplash variadas) e `acceptsPet`
+- Manter campo `image` como `images[0]` para compatibilidade ou migrar todos os usos
 
-### 3. `src/pages/Register.tsx`
-- Formulário: Nome, E-mail, Senha
-- Sem seleção de tipo de usuário (conta única universal)
-- Botão "Criar Conta" → chama `register()`, navega para `/onboarding`
-- Link "Já tenho conta" → `/login`
+### 3. `src/components/PropertyCard.tsx` — Carrossel no card
+- Substituir `<img>` por mini carrossel navegável (setas esquerda/direita) dentro do card
+- Indicadores de dots no carrossel
+- Manter badges, favorito e botão "Tenho Interesse"
+- Clique no card (fora dos botões) navega para `/marketplace/:id`
 
-### 4. `src/pages/ForgotPassword.tsx`
-- Campo E-mail + botão "Enviar link de recuperação"
-- Toast de sucesso simulado
-- Link "Voltar ao login"
+### 4. `src/components/FilterBar.tsx` → `src/components/SidebarFilters.tsx`
+- Refatorar para layout vertical (sidebar style)
+- Adicionar toggle "Aceita Pet" (com ícone PawPrint)
+- Desktop: sidebar fixa à esquerda
+- Mobile: botão flutuante "Filtros" abre Sheet/Drawer com os filtros
 
-## Arquivos modificados
+### 5. `src/pages/Marketplace.tsx` — Layout sidebar + grid
+- Layout flex: sidebar de filtros à esquerda (desktop) + grid de cards à direita
+- Mobile: filtros em Sheet, botão "Filtros" fixo
+- Contador de resultados ("X imóveis encontrados")
 
-### 5. `src/components/AppLayout.tsx` — Refatorar header
-- Header: lado esquerdo = logo + sidebar trigger
-- Header lado direito:
-  - Se logado: botão CTA roxo "Anunciar Imóvel / Vaga" (com ícone `Plus`) + Avatar do usuário
-  - Avatar clicável abre `DropdownMenu` com: "Meu Perfil" (→ `/profile`), "Mensagens" (toast placeholder), "Sair" (chama `logout()`, navega `/login`)
-- Mobile: CTA aparece como ícone compacto no header; dropdown igual
+### 6. `src/pages/PropertyDetails.tsx` — Nova página de detalhes
+- Hero section: galeria de imagens grande (carrossel ou grid)
+- Seção de descrição completa
+- Grid de comodidades com ícones (Wifi, Car, Dumbbell, Shield, etc.)
+- Card lateral fixo (desktop) / inferior fixo (mobile) com preço + botão "Tenho Interesse" → ContactModal
+- Badges "Sem Fiador" e "Verificado"
+- Botão voltar para marketplace
 
-### 6. `src/App.tsx` — Rotas
-- Adicionar rotas `/login`, `/register`, `/forgot-password`
-- Wrap com `AuthProvider`
-- Rota `/` redireciona para `/login` se não logado, `/dashboard` se logado
+### 7. `src/hooks/useProperties.ts` — Filtro acceptsPet
+- Adicionar lógica de filtro para `acceptsPet`
 
-## Fluxo de navegação
-```text
-/login ──→ /dashboard (após login)
-/register ──→ /onboarding (após cadastro)
-/forgot-password ──→ /login (após enviar)
-Header avatar dropdown "Sair" ──→ /login
-```
+### 8. `src/App.tsx` — Nova rota
+- Adicionar `/marketplace/:id` → `PropertyDetails`
 
-## Detalhes técnicos
-- Formulários usam `useState` local, validação básica inline
-- Sem integração Supabase — tudo mockado
-- Design mobile-first com cards centralizados nas telas de auth
-- Paleta roxa vibrante nos botões primários e gradientes sutis nos fundos
+### 9. Atualizar referências
+- `Dashboard.tsx` e qualquer outro uso de `property.image` → `property.images[0]`
 
