@@ -2,19 +2,21 @@ import { PropertyFilters, Campus } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { PawPrint } from 'lucide-react';
 
-interface FilterBarProps {
+interface SidebarFiltersProps {
   filters: PropertyFilters;
   onChange: (filters: PropertyFilters) => void;
 }
 
 const campuses: (Campus | 'todos')[] = ['todos', 'Santa Mônica', 'Umuarama', 'Pontal', 'Glória'];
 
-export function FilterBar({ filters, onChange }: FilterBarProps) {
+export function SidebarFilters({ filters, onChange }: SidebarFiltersProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-card rounded-lg border">
-      <div className="flex-1 min-w-[140px]">
-        <Label className="text-xs text-muted-foreground mb-1 block">Campus</Label>
+    <div className="space-y-6">
+      <div>
+        <Label className="text-xs text-muted-foreground mb-1.5 block">Campus</Label>
         <Select value={filters.campus} onValueChange={(v) => onChange({ ...filters, campus: v as Campus | 'todos' })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -24,8 +26,9 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex-1 min-w-[180px]">
-        <Label className="text-xs text-muted-foreground mb-1 block">
+
+      <div>
+        <Label className="text-xs text-muted-foreground mb-1.5 block">
           Preço: R$ {filters.priceRange[0]} – R$ {filters.priceRange[1]}
         </Label>
         <Slider
@@ -37,8 +40,9 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
           className="mt-2"
         />
       </div>
-      <div className="min-w-[120px]">
-        <Label className="text-xs text-muted-foreground mb-1 block">Quartos</Label>
+
+      <div>
+        <Label className="text-xs text-muted-foreground mb-1.5 block">Quartos</Label>
         <Select
           value={filters.rooms?.toString() ?? 'todos'}
           onValueChange={(v) => onChange({ ...filters, rooms: v === 'todos' ? null : Number(v) })}
@@ -51,6 +55,17 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
             <SelectItem value="3">3+ quartos</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <Label className="text-sm flex items-center gap-2 cursor-pointer">
+          <PawPrint className="w-4 h-4 text-amber-500" />
+          Aceita Pet
+        </Label>
+        <Switch
+          checked={filters.acceptsPet === true}
+          onCheckedChange={(checked) => onChange({ ...filters, acceptsPet: checked ? true : null })}
+        />
       </div>
     </div>
   );
