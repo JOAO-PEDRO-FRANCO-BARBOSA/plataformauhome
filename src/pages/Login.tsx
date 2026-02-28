@@ -1,0 +1,90 @@
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Mail, Lock, LogIn } from 'lucide-react';
+import logoImg from '@/assets/Logo_Uhome.png';
+
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!email || !password) {
+      setError('Preencha todos os campos.');
+      return;
+    }
+    login(email, password);
+    navigate('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+      <Card className="w-full max-w-md shadow-xl border-0">
+        <CardHeader className="text-center space-y-4 pb-2">
+          <div className="flex justify-center">
+            <img src={logoImg} alt="Uhome" className="h-14 w-14 object-contain" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-primary">Entrar no Uhome</CardTitle>
+          <CardDescription>Acesse sua conta e encontre a moradia ideal</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  className="pl-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="pl-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full gap-2" size="lg">
+              <LogIn className="h-4 w-4" />
+              Entrar
+            </Button>
+          </form>
+          <div className="mt-6 text-center space-y-2 text-sm">
+            <Link to="/forgot-password" className="text-primary hover:underline block">
+              Esqueci minha senha
+            </Link>
+            <p className="text-muted-foreground">
+              Não tem conta?{' '}
+              <Link to="/register" className="text-primary font-medium hover:underline">
+                Criar conta
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
