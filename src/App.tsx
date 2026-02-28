@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Marketplace from "@/pages/Marketplace";
+import PropertyDetails from "@/pages/PropertyDetails";
 import MatchPage from "@/pages/MatchPage";
 import Profile from "@/pages/Profile";
 import Onboarding from "@/pages/Onboarding";
@@ -37,6 +38,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/marketplace/:id" element={<PropertyDetails />} />
               <Route path="/match" element={<MatchPage />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

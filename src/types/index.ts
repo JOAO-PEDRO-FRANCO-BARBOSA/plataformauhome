@@ -23,7 +23,7 @@ export interface StudentProfile {
 export interface Property {
   id: string;
   title: string;
-  image: string;
+  images: string[];
   price: number;
   campus: Campus;
   address: string;
@@ -32,6 +32,7 @@ export interface Property {
   verified: boolean;
   description: string;
   amenities: string[];
+  acceptsPet: boolean;
 }
 
 export interface Match {
@@ -48,4 +49,5 @@ export interface PropertyFilters {
   campus: Campus | 'todos';
   priceRange: [number, number];
   rooms: number | null;
+  acceptsPet: boolean | null;
 }

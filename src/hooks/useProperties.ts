@@ -21,6 +21,7 @@ export function useProperties(filters?: PropertyFilters) {
       if (filters.campus !== 'todos' && p.campus !== filters.campus) return false;
       if (p.price < filters.priceRange[0] || p.price > filters.priceRange[1]) return false;
       if (filters.rooms && p.rooms !== filters.rooms) return false;
+      if (filters.acceptsPet === true && !p.acceptsPet) return false;
       return true;
     });
   }, [properties, filters]);
