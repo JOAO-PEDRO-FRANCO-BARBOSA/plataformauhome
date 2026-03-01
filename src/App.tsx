@@ -15,6 +15,7 @@ import Onboarding from "@/pages/Onboarding";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 import HostDashboard from "@/pages/HostDashboard";
 import NotFound from "./pages/NotFound";
 import { PropertyWizard } from "@/components/PropertyWizard";
@@ -22,7 +23,8 @@ import { PropertyWizard } from "@/components/PropertyWizard";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, loading } = useAuth();
+  if (loading) return null;
   return <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />;
 }
 
@@ -37,6 +39,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />

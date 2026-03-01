@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,17 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Camera, ArrowLeft, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { user, refreshProfile } = useAuth();
   const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false);
   const [data, setData] = useState({
-    name: '',
+    full_name: '',
     course: '',
-    avatar: '',
     smokes: false,
     likesParties: false,
     hasPet: false,
@@ -32,7 +35,27 @@ export default function Onboarding() {
 
   const progress = (step / 3) * 100;
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
+    if (!user) return;
+    setSaving(true);
+    await supabase.from('profiles').update({
+      full_name: data.full_name,
+      course: data.course,
+      campus: data.campus,
+      search_type: data.searchType,
+      price_range_min: data.priceRange[0],
+      price_range_max: data.priceRange[1],
+      habits: {
+        smokes: data.smokes,
+        likesParties: data.likesParties,
+        hasPet: data.hasPet,
+        organized: data.organized,
+        earlyBird: data.earlyBird,
+        studyHabit: data.studyHabit,
+      },
+    }).eq('id', user.id);
+    await refreshProfile();
+    setSaving(false);
     toast.success('Bem-vindo ao Uhome! 🎉');
     navigate('/dashboard');
   };
@@ -59,7 +82,7 @@ export default function Onboarding() {
                 </div>
                 <div>
                   <Label>Seu nome</Label>
-                  <Input value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} placeholder="Ex: Maria Silva" />
+                  <Input value={data.full_name} onChange={(e) => setData({ ...data, full_name: e.target.value })} placeholder="Ex: Maria Silva" />
                 </div>
                 <div>
                   <Label>Curso na UFU</Label>
@@ -79,10 +102,7 @@ export default function Onboarding() {
                 ] as [string, string][]).map(([key, label]) => (
                   <div key={key} className="flex items-center justify-between">
                     <Label>{label}</Label>
-                    <Switch
-                      checked={(data as any)[key]}
-                      onCheckedChange={(v) => setData({ ...data, [key]: v })}
-                    />
+                    <Switch checked={(data as any)[key]} onCheckedChange={(v) => setData({ ...data, [key]: v })} />
                   </div>
                 ))}
                 <div>
@@ -124,14 +144,7 @@ export default function Onboarding() {
                 </div>
                 <div>
                   <Label>Faixa de preço: R$ {data.priceRange[0]} – R$ {data.priceRange[1]}</Label>
-                  <Slider
-                    min={200}
-                    max={2500}
-                    step={50}
-                    value={data.priceRange}
-                    onValueChange={(v) => setData({ ...data, priceRange: v as [number, number] })}
-                    className="mt-2"
-                  />
+                  <Slider min={200} max={2500} step={50} value={data.priceRange} onValueChange={(v) => setData({ ...data, priceRange: v as [number, number] })} className="mt-2" />
                 </div>
               </>
             )}
@@ -149,8 +162,9 @@ export default function Onboarding() {
               Próximo <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           ) : (
-            <Button className="flex-1" onClick={handleFinish}>
-              <Check className="w-4 h-4 mr-1" /> Finalizar
+            <Button className="flex-1" onClick={handleFinish} disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+              Finalizar
             </Button>
           )}
         </div>

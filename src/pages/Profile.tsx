@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,19 +11,43 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HabitBadges } from '@/components/HabitBadges';
 import { toast } from 'sonner';
-import { Camera, Upload } from 'lucide-react';
-import { Campus, HabitProfile } from '@/types';
+import { Camera, Upload, Loader2 } from 'lucide-react';
 
 export default function Profile() {
   const { profile, updateProfile } = useProfile();
+  const { user, refreshProfile } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setSaving(true);
+    await updateProfile(profile);
+    await refreshProfile();
+    setSaving(false);
     toast.success('Preferências atualizadas! 💜');
   };
 
-  const updateHabit = (key: keyof HabitProfile, value: any) => {
+  const updateHabit = (key: string, value: any) => {
     updateProfile({ habits: { ...profile.habits, [key]: value } });
   };
+
+  const handleMatchPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploading(true);
+    const path = `${user.id}/match-photo-${Date.now()}`;
+    const { error } = await supabase.storage.from('property-images').upload(path, file);
+    if (!error) {
+      const { data } = supabase.storage.from('property-images').getPublicUrl(path);
+      await updateProfile({ match_photo_url: data.publicUrl });
+      toast.success('Foto de match atualizada! 📸');
+    } else {
+      toast.error('Erro ao fazer upload');
+    }
+    setUploading(false);
+  };
+
+  const habits = profile.habits || {};
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -33,12 +60,11 @@ export default function Profile() {
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6 mt-4">
-          {/* Avatar & Info */}
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
-                  <img src={profile.avatar} alt={profile.name} className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
+                  <img src={profile.avatar_url || '/placeholder.svg'} alt={profile.full_name} className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
                   <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                     <Camera className="w-4 h-4" />
                   </button>
@@ -46,7 +72,7 @@ export default function Profile() {
                 <div className="space-y-3 w-full">
                   <div>
                     <Label>Nome</Label>
-                    <Input value={profile.name} onChange={(e) => updateProfile({ name: e.target.value })} />
+                    <Input value={profile.full_name} onChange={(e) => updateProfile({ full_name: e.target.value })} />
                   </div>
                   <div>
                     <Label>Curso na UFU</Label>
@@ -54,7 +80,7 @@ export default function Profile() {
                   </div>
                   <div>
                     <Label>Campus</Label>
-                    <Select value={profile.campus} onValueChange={(v) => updateProfile({ campus: v as Campus })}>
+                    <Select value={profile.campus} onValueChange={(v) => updateProfile({ campus: v })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {['Santa Mônica', 'Umuarama', 'Pontal', 'Glória'].map((c) => (
@@ -68,7 +94,6 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          {/* Habits */}
           <Card>
             <CardHeader><CardTitle className="text-lg">Preferências de Hábitos</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -78,15 +103,15 @@ export default function Profile() {
                 ['likesParties', 'Gosta de festas'],
                 ['smokes', 'Fumante'],
                 ['hasPet', 'Tem pet'],
-              ] as [keyof HabitProfile, string][]).map(([key, label]) => (
+              ] as [string, string][]).map(([key, label]) => (
                 <div key={key} className="flex items-center justify-between">
                   <Label>{label}</Label>
-                  <Switch checked={profile.habits[key] as boolean} onCheckedChange={(v) => updateHabit(key, v)} />
+                  <Switch checked={!!habits[key]} onCheckedChange={(v) => updateHabit(key, v)} />
                 </div>
               ))}
               <div>
                 <Label>Estilo de estudo</Label>
-                <Select value={profile.habits.studyHabit} onValueChange={(v) => updateHabit('studyHabit', v)}>
+                <Select value={habits.studyHabit || 'moderado'} onValueChange={(v) => updateHabit('studyHabit', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="silencioso">Silencioso</SelectItem>
@@ -97,7 +122,7 @@ export default function Profile() {
               </div>
               <div className="pt-2">
                 <Label className="text-xs text-muted-foreground mb-2 block">Preview</Label>
-                <HabitBadges habits={profile.habits} />
+                <HabitBadges habits={habits as any} />
               </div>
             </CardContent>
           </Card>
@@ -107,26 +132,25 @@ export default function Profile() {
           <Card>
             <CardHeader><CardTitle className="text-lg">Foto para Match</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Esta foto será exibida no feed de matches. Escolha uma foto que mostre bem quem você é!
-              </p>
+              <p className="text-sm text-muted-foreground">Esta foto será exibida no feed de matches.</p>
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
                   <img
-                    src={profile.avatar}
+                    src={profile.match_photo_url || profile.avatar_url || '/placeholder.svg'}
                     alt="Foto para Match"
                     className="w-48 h-64 object-cover rounded-xl border-4 border-primary/20 shadow-lg"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-xl" />
                 </div>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => toast('Upload de foto em breve! 📸')}
-                >
-                  <Upload className="w-4 h-4" />
-                  Trocar Foto de Match
-                </Button>
+                <label>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleMatchPhotoUpload} />
+                  <Button variant="outline" className="gap-2" asChild disabled={uploading}>
+                    <span>
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      Trocar Foto de Match
+                    </span>
+                  </Button>
+                </label>
                 <p className="text-xs text-muted-foreground text-center">
                   Dica: Use uma foto sorrindo, com boa iluminação e que mostre seu rosto claramente.
                 </p>
@@ -136,7 +160,10 @@ export default function Profile() {
         </TabsContent>
       </Tabs>
 
-      <Button onClick={handleSave} className="w-full" size="lg">Salvar Preferências</Button>
+      <Button onClick={handleSave} className="w-full" size="lg" disabled={saving}>
+        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+        Salvar Preferências
+      </Button>
     </div>
   );
 }

@@ -14,7 +14,200 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      connections: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string
+          requester_id: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id: string
+          requester_id: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          requester_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connections_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          connection_id: string
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          connection_id: string
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          connection_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          campus: string | null
+          course: string | null
+          created_at: string
+          full_name: string | null
+          habits: Json | null
+          id: string
+          match_photo_url: string | null
+          price_range_max: number | null
+          price_range_min: number | null
+          role: string | null
+          search_type: string | null
+          semester: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          campus?: string | null
+          course?: string | null
+          created_at?: string
+          full_name?: string | null
+          habits?: Json | null
+          id: string
+          match_photo_url?: string | null
+          price_range_max?: number | null
+          price_range_min?: number | null
+          role?: string | null
+          search_type?: string | null
+          semester?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          campus?: string | null
+          course?: string | null
+          created_at?: string
+          full_name?: string | null
+          habits?: Json | null
+          id?: string
+          match_photo_url?: string | null
+          price_range_max?: number | null
+          price_range_min?: number | null
+          role?: string | null
+          search_type?: string | null
+          semester?: number | null
+        }
+        Relationships: []
+      }
+      properties: {
+        Row: {
+          accepts_pet: boolean | null
+          address: string | null
+          amenities: string[] | null
+          bathrooms: number | null
+          campus: string | null
+          created_at: string
+          description: string | null
+          id: string
+          images: string[] | null
+          no_fiador: boolean | null
+          owner_id: string
+          price: number
+          rooms: number | null
+          title: string
+          validation_status: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          accepts_pet?: boolean | null
+          address?: string | null
+          amenities?: string[] | null
+          bathrooms?: number | null
+          campus?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          no_fiador?: boolean | null
+          owner_id: string
+          price: number
+          rooms?: number | null
+          title: string
+          validation_status?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          accepts_pet?: boolean | null
+          address?: string | null
+          amenities?: string[] | null
+          bathrooms?: number | null
+          campus?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          no_fiador?: boolean | null
+          owner_id?: string
+          price?: number
+          rooms?: number | null
+          title?: string
+          validation_status?: string | null
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
