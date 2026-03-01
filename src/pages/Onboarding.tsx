@@ -38,26 +38,34 @@ export default function Onboarding() {
   const handleFinish = async () => {
     if (!user) return;
     setSaving(true);
-    await supabase.from('profiles').update({
-      full_name: data.full_name,
-      course: data.course,
-      campus: data.campus,
-      search_type: data.searchType,
-      price_range_min: data.priceRange[0],
-      price_range_max: data.priceRange[1],
-      habits: {
-        smokes: data.smokes,
-        likesParties: data.likesParties,
-        hasPet: data.hasPet,
-        organized: data.organized,
-        earlyBird: data.earlyBird,
-        studyHabit: data.studyHabit,
-      },
-    }).eq('id', user.id);
-    await refreshProfile();
-    setSaving(false);
-    toast.success('Bem-vindo ao Uhome! 🎉');
-    navigate('/dashboard');
+    try {
+      const { error } = await supabase.from('profiles').update({
+        full_name: data.full_name,
+        course: data.course,
+        campus: data.campus,
+        search_type: data.searchType,
+        price_range_min: data.priceRange[0],
+        price_range_max: data.priceRange[1],
+        habits: {
+          smokes: data.smokes,
+          likesParties: data.likesParties,
+          hasPet: data.hasPet,
+          organized: data.organized,
+          earlyBird: data.earlyBird,
+          studyHabit: data.studyHabit,
+        },
+      }).eq('id', user.id);
+
+      if (error) throw error;
+
+      await refreshProfile();
+      toast.success('Bem-vindo ao Uhome! 🎉');
+      navigate('/dashboard');
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao salvar perfil. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
