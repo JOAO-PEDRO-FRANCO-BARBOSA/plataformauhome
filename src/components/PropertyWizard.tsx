@@ -9,18 +9,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DragDropZone } from '@/components/DragDropZone';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import type { Campus } from '@/types';
 
-const AMENITIES = [
-  'Wi-Fi', 'Garagem', 'Mobiliado', 'Lavanderia',
-  'Academia', 'Portaria 24h', 'Área gourmet', 'Quintal',
-];
-
+const AMENITIES = ['Wi-Fi', 'Garagem', 'Mobiliado', 'Lavanderia', 'Academia', 'Portaria 24h', 'Área gourmet', 'Quintal'];
 const CAMPUSES: Campus[] = ['Santa Mônica', 'Umuarama', 'Pontal', 'Glória'];
 
 interface WizardData {
   address: string;
   campus: Campus | '';
+  title: string;
   rooms: number;
   bathrooms: number;
   amenities: string[];
@@ -29,19 +29,14 @@ interface WizardData {
   noFiador: boolean;
   verified: boolean;
   price: string;
+  acceptsPet: boolean;
+  description: string;
 }
 
 const initialData: WizardData = {
-  address: '',
-  campus: '',
-  rooms: 1,
-  bathrooms: 1,
-  amenities: [],
-  photos: [],
-  docs: [],
-  noFiador: false,
-  verified: false,
-  price: '',
+  address: '', campus: '', title: '', rooms: 1, bathrooms: 1,
+  amenities: [], photos: [], docs: [], noFiador: false, verified: false,
+  price: '', acceptsPet: false, description: '',
 };
 
 export function PropertyWizard() {
@@ -50,37 +45,64 @@ export function PropertyWizard() {
   const [publishing, setPublishing] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const steps = ['Localização', 'Características', 'Fotos', 'Documentação'];
   const progress = ((step + 1) / steps.length) * 100;
 
   const toggleAmenity = (a: string) =>
-    setData((d) => ({
-      ...d,
-      amenities: d.amenities.includes(a) ? d.amenities.filter((x) => x !== a) : [...d.amenities, a],
-    }));
+    setData((d) => ({ ...d, amenities: d.amenities.includes(a) ? d.amenities.filter((x) => x !== a) : [...d.amenities, a] }));
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
+    if (!user) { toast.error('Faça login primeiro'); return; }
     setPublishing(true);
-    setTimeout(() => {
-      setPublishing(false);
+
+    try {
+      // Upload photos
+      const imageUrls: string[] = [];
+      for (const photo of data.photos) {
+        const path = `${user.id}/${Date.now()}-${photo.name}`;
+        const { error } = await supabase.storage.from('property-images').upload(path, photo);
+        if (!error) {
+          const { data: urlData } = supabase.storage.from('property-images').getPublicUrl(path);
+          imageUrls.push(urlData.publicUrl);
+        }
+      }
+
+      const { error } = await supabase.from('properties').insert({
+        owner_id: user.id,
+        title: data.title || `Imóvel em ${data.campus}`,
+        address: data.address,
+        campus: data.campus || null,
+        rooms: data.rooms,
+        bathrooms: data.bathrooms,
+        amenities: data.amenities,
+        images: imageUrls,
+        no_fiador: data.noFiador,
+        verified: false,
+        price: Number(data.price) || 0,
+        accepts_pet: data.acceptsPet,
+        description: data.description,
+        validation_status: 'pending_docs',
+      });
+
+      if (error) throw error;
       setSuccess(true);
-    }, 2000);
+    } catch (err: any) {
+      toast.error('Erro ao publicar: ' + (err.message || 'Tente novamente'));
+    } finally {
+      setPublishing(false);
+    }
   };
 
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
-        <div className="relative">
-          <PartyPopper className="h-16 w-16 text-primary animate-bounce" />
-        </div>
+        <PartyPopper className="h-16 w-16 text-primary animate-bounce" />
         <h2 className="text-2xl font-bold">Anúncio Publicado!</h2>
-        <p className="text-muted-foreground max-w-sm">
-          Seu imóvel foi enviado para análise e estará disponível em breve.
-        </p>
+        <p className="text-muted-foreground max-w-sm">Seu imóvel foi enviado para análise e estará disponível em breve.</p>
         <Button onClick={() => navigate('/host')} className="gap-2">
-          <CheckCircle2 className="h-4 w-4" />
-          Ver Meus Anúncios
+          <CheckCircle2 className="h-4 w-4" /> Ver Meus Anúncios
         </Button>
       </div>
     );
@@ -97,7 +119,6 @@ export function PropertyWizard() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      {/* Progress */}
       <div className="space-y-2">
         <div className="flex justify-between text-xs text-muted-foreground">
           {steps.map((s, i) => (
@@ -107,28 +128,24 @@ export function PropertyWizard() {
         <Progress value={progress} className="h-2" />
       </div>
 
-      {/* Step content */}
       <div className="min-h-[320px]">
         {step === 0 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Localização do Imóvel</h3>
             <div className="space-y-2">
+              <Label htmlFor="title">Título do anúncio</Label>
+              <Input id="title" placeholder="Ex: Kitnet mobiliada perto da UFU" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="address">Endereço completo</Label>
-              <Input
-                id="address"
-                placeholder="Rua, número, bairro"
-                value={data.address}
-                onChange={(e) => setData({ ...data, address: e.target.value })}
-              />
+              <Input id="address" placeholder="Rua, número, bairro" value={data.address} onChange={(e) => setData({ ...data, address: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Campus mais próximo</Label>
               <Select value={data.campus} onValueChange={(v) => setData({ ...data, campus: v as Campus })}>
                 <SelectTrigger><SelectValue placeholder="Selecione o campus" /></SelectTrigger>
                 <SelectContent>
-                  {CAMPUSES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
+                  {CAMPUSES.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -141,23 +158,11 @@ export function PropertyWizard() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rooms">Quartos</Label>
-                <Input
-                  id="rooms"
-                  type="number"
-                  min={1}
-                  value={data.rooms}
-                  onChange={(e) => setData({ ...data, rooms: Number(e.target.value) })}
-                />
+                <Input id="rooms" type="number" min={1} value={data.rooms} onChange={(e) => setData({ ...data, rooms: Number(e.target.value) })} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="baths">Banheiros</Label>
-                <Input
-                  id="baths"
-                  type="number"
-                  min={1}
-                  value={data.bathrooms}
-                  onChange={(e) => setData({ ...data, bathrooms: Number(e.target.value) })}
-                />
+                <Input id="baths" type="number" min={1} value={data.bathrooms} onChange={(e) => setData({ ...data, bathrooms: Number(e.target.value) })} />
               </div>
             </div>
             <div className="space-y-2">
@@ -165,14 +170,19 @@ export function PropertyWizard() {
               <div className="grid grid-cols-2 gap-2">
                 {AMENITIES.map((a) => (
                   <label key={a} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox
-                      checked={data.amenities.includes(a)}
-                      onCheckedChange={() => toggleAmenity(a)}
-                    />
+                    <Checkbox checked={data.amenities.includes(a)} onCheckedChange={() => toggleAmenity(a)} />
                     {a}
                   </label>
                 ))}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desc">Descrição</Label>
+              <Input id="desc" placeholder="Descreva o imóvel..." value={data.description} onChange={(e) => setData({ ...data, description: e.target.value })} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Aceita pet</Label>
+              <Switch checked={data.acceptsPet} onCheckedChange={(v) => setData({ ...data, acceptsPet: v })} />
             </div>
           </div>
         )}
@@ -180,72 +190,34 @@ export function PropertyWizard() {
         {step === 2 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Fotos do Imóvel</h3>
-            <DragDropZone
-              accept="image/*"
-              maxFiles={6}
-              onFilesChange={(f) => setData({ ...data, photos: f })}
-              label="Arraste fotos do imóvel ou clique para selecionar"
-            />
+            <DragDropZone accept="image/*" maxFiles={6} onFilesChange={(f) => setData({ ...data, photos: f })} label="Arraste fotos do imóvel ou clique para selecionar" />
           </div>
         )}
 
         {step === 3 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Documentação e Preço</h3>
-            <DragDropZone
-              accept=".pdf,image/*"
-              maxFiles={3}
-              onFilesChange={(f) => setData({ ...data, docs: f })}
-              label="Arraste contrato/comprovante (PDF ou foto)"
-            />
+            <DragDropZone accept=".pdf,image/*" maxFiles={3} onFilesChange={(f) => setData({ ...data, docs: f })} label="Arraste contrato/comprovante (PDF ou foto)" />
             <div className="space-y-2">
               <Label htmlFor="price">Preço mensal (R$)</Label>
-              <Input
-                id="price"
-                type="number"
-                placeholder="850"
-                value={data.price}
-                onChange={(e) => setData({ ...data, price: e.target.value })}
-              />
+              <Input id="price" type="number" placeholder="850" value={data.price} onChange={(e) => setData({ ...data, price: e.target.value })} />
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="nofiador">Sem fiador</Label>
-              <Switch
-                id="nofiador"
-                checked={data.noFiador}
-                onCheckedChange={(v) => setData({ ...data, noFiador: v })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="verified">Verificado</Label>
-              <Switch
-                id="verified"
-                checked={data.verified}
-                onCheckedChange={(v) => setData({ ...data, verified: v })}
-              />
+              <Label>Sem fiador</Label>
+              <Switch checked={data.noFiador} onCheckedChange={(v) => setData({ ...data, noFiador: v })} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Navigation */}
       <div className="flex justify-between pt-4 border-t">
-        <Button
-          variant="outline"
-          onClick={() => setStep((s) => s - 1)}
-          disabled={step === 0}
-          className="gap-1"
-        >
+        <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={step === 0} className="gap-1">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         {step < steps.length - 1 ? (
-          <Button onClick={() => setStep((s) => s + 1)} className="gap-1">
-            Avançar <ArrowRight className="h-4 w-4" />
-          </Button>
+          <Button onClick={() => setStep((s) => s + 1)} className="gap-1">Avançar <ArrowRight className="h-4 w-4" /></Button>
         ) : (
-          <Button onClick={handlePublish} className="gap-1">
-            Publicar <CheckCircle2 className="h-4 w-4" />
-          </Button>
+          <Button onClick={handlePublish} className="gap-1">Publicar <CheckCircle2 className="h-4 w-4" /></Button>
         )}
       </div>
     </div>

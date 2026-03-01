@@ -1,44 +1,57 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-const STATUS_STYLES: Record<string, string> = {
-  'Ativo': 'bg-green-500/15 text-green-700 border-green-500/30',
-  'Em Análise': 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30',
-  'Pausado': 'bg-muted text-muted-foreground border-muted-foreground/20',
+const STATUS_MAP: Record<string, { label: string; style: string }> = {
+  'pending_docs': { label: 'Em Análise', style: 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30' },
+  'active': { label: 'Ativo', style: 'bg-green-500/15 text-green-700 border-green-500/30' },
+  'paused': { label: 'Pausado', style: 'bg-muted text-muted-foreground border-muted-foreground/20' },
 };
 
-const mockListings = [
-  {
-    id: '1',
-    title: 'Kitnet mobiliada próx. Santa Mônica',
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=300&fit=crop',
-    price: 850,
-    status: 'Ativo',
-    interested: 7,
-  },
-  {
-    id: '2',
-    title: 'Quarto em república — Umuarama',
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop',
-    price: 550,
-    status: 'Em Análise',
-    interested: 3,
-  },
-  {
-    id: '3',
-    title: 'Apartamento 2 quartos — Glória',
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=300&fit=crop',
-    price: 1200,
-    status: 'Pausado',
-    interested: 0,
-  },
-];
+interface Listing {
+  id: string;
+  title: string;
+  images: string[];
+  price: number;
+  validation_status: string;
+}
 
 export default function HostDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('properties').select('id, title, images, price, validation_status')
+      .eq('owner_id', user.id)
+      .then(({ data }) => {
+        setListings((data ?? []).map((p) => ({
+          id: p.id,
+          title: p.title,
+          images: (p.images as string[]) ?? [],
+          price: Number(p.price),
+          validation_status: p.validation_status ?? 'pending_docs',
+        })));
+        setLoading(false);
+      });
+  }, [user]);
+
+  const status = (s: string) => STATUS_MAP[s] ?? STATUS_MAP['pending_docs'];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -49,34 +62,38 @@ export default function HostDashboard() {
         </Button>
       </div>
 
-      <div className="grid gap-4">
-        {mockListings.map((listing) => (
-          <Card key={listing.id} className="overflow-hidden">
-            <CardContent className="p-0 flex flex-col sm:flex-row">
-              <img
-                src={listing.image}
-                alt={listing.title}
-                className="w-full sm:w-40 h-32 sm:h-auto object-cover"
-              />
-              <div className="flex-1 p-4 flex flex-col justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold">{listing.title}</h3>
-                  <p className="text-lg font-bold text-primary">R$ {listing.price}/mês</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className={STATUS_STYLES[listing.status]}>
-                    {listing.status}
-                  </Badge>
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Users className="h-3.5 w-3.5" />
-                    {listing.interested} interessado{listing.interested !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {listings.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <p>Nenhum anúncio ainda.</p>
+          <Button variant="link" onClick={() => navigate('/host/new')}>Criar primeiro anúncio</Button>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {listings.map((listing) => {
+            const st = status(listing.validation_status);
+            return (
+              <Card key={listing.id} className="overflow-hidden">
+                <CardContent className="p-0 flex flex-col sm:flex-row">
+                  {listing.images[0] ? (
+                    <img src={listing.images[0]} alt={listing.title} className="w-full sm:w-40 h-32 sm:h-auto object-cover" />
+                  ) : (
+                    <div className="w-full sm:w-40 h-32 sm:h-auto bg-muted flex items-center justify-center text-muted-foreground text-xs">Sem foto</div>
+                  )}
+                  <div className="flex-1 p-4 flex flex-col justify-between gap-2">
+                    <div>
+                      <h3 className="font-semibold">{listing.title}</h3>
+                      <p className="text-lg font-bold text-primary">R$ {listing.price}/mês</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className={st.style}>{st.label}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

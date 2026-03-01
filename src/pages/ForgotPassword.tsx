@@ -1,26 +1,32 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mail, ArrowLeft, Send } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Mail, ArrowLeft, Send, Loader2 } from 'lucide-react';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { resetPassword } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    setSent(true);
-    toast({
-      title: 'Link enviado!',
-      description: `Verifique sua caixa de entrada em ${email}`,
-    });
+    setLoading(true);
+    setError('');
+    const { error } = await resetPassword(email);
+    setLoading(false);
+    if (error) {
+      setError(error);
+    } else {
+      setSent(true);
+    }
   };
 
   return (
@@ -32,9 +38,7 @@ export default function ForgotPassword() {
           </div>
           <CardTitle className="text-2xl font-bold text-primary">Recuperar Senha</CardTitle>
           <CardDescription>
-            {sent
-              ? 'Verifique seu e-mail para redefinir a senha'
-              : 'Digite seu e-mail para receber o link de recuperação'}
+            {sent ? 'Verifique seu e-mail para redefinir a senha' : 'Digite seu e-mail para receber o link de recuperação'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -44,18 +48,12 @@ export default function ForgotPassword() {
                 <Label htmlFor="email">E-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
+                  <Input id="email" type="email" placeholder="seu@email.com" className="pl-10" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
               </div>
-              <Button type="submit" className="w-full gap-2" size="lg">
-                <Send className="h-4 w-4" />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Enviar link de recuperação
               </Button>
             </form>
@@ -71,8 +69,7 @@ export default function ForgotPassword() {
           )}
           <div className="mt-6 text-center">
             <Link to="/login" className="text-sm text-primary hover:underline inline-flex items-center gap-1">
-              <ArrowLeft className="h-3 w-3" />
-              Voltar ao login
+              <ArrowLeft className="h-3 w-3" /> Voltar ao login
             </Link>
           </div>
         </CardContent>

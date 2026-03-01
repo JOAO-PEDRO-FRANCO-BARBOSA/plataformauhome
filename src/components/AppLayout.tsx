@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Home, Search, Users, User, Plus, MessageSquare, LogOut } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
@@ -6,26 +6,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider,
+  SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useToast } from '@/hooks/use-toast';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 const navItems = [
@@ -53,12 +42,7 @@ function DesktopSidebar() {
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-accent/50"
-                      activeClassName="bg-accent text-primary font-medium"
-                    >
+                    <NavLink to={item.url} end className="hover:bg-accent/50" activeClassName="bg-accent text-primary font-medium">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
@@ -77,13 +61,7 @@ function MobileBottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t flex items-center justify-around h-16 md:hidden">
       {navItems.map((item) => (
-        <NavLink
-          key={item.title}
-          to={item.url}
-          end
-          className="flex flex-col items-center gap-0.5 text-muted-foreground text-xs py-2 px-3"
-          activeClassName="text-primary font-medium"
-        >
+        <NavLink key={item.title} to={item.url} end className="flex flex-col items-center gap-0.5 text-muted-foreground text-xs py-2 px-3" activeClassName="text-primary font-medium">
           <item.icon className="w-5 h-5" />
           <span>{item.title}</span>
         </NavLink>
@@ -93,38 +71,31 @@ function MobileBottomNav() {
 }
 
 function UserMenu() {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button className="rounded-full ring-2 ring-primary/20 hover:ring-primary/50 transition-all">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.avatar} alt={user?.name} />
+            <AvatarImage src={profile?.avatar_url ?? undefined} alt={profile?.full_name ?? 'U'} />
             <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              {profile?.full_name?.charAt(0)?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-          <User className="mr-2 h-4 w-4" />
-          Meu Perfil
+          <User className="mr-2 h-4 w-4" /> Meu Perfil
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/messages')} className="cursor-pointer">
-          <MessageSquare className="mr-2 h-4 w-4" />
-          Mensagens
+          <MessageSquare className="mr-2 h-4 w-4" /> Mensagens
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => { logout(); navigate('/login'); }}
-          className="cursor-pointer text-destructive focus:text-destructive"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sair
+        <DropdownMenuItem onClick={async () => { await logout(); navigate('/login'); }} className="cursor-pointer text-destructive focus:text-destructive">
+          <LogOut className="mr-2 h-4 w-4" /> Sair
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -155,17 +126,14 @@ export function AppLayout() {
                   </Button>
                 ) : (
                   <Button size="sm" onClick={() => navigate('/host/new')} className="gap-1.5">
-                    <Plus className="h-4 w-4" />
-                    Anunciar Imóvel / Vaga
+                    <Plus className="h-4 w-4" /> Anunciar Imóvel / Vaga
                   </Button>
                 )}
                 <UserMenu />
               </div>
             )}
           </header>
-          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">
-            <Outlet />
-          </main>
+          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6"><Outlet /></main>
           <AppFooter />
         </div>
         {isMobile && <MobileBottomNav />}

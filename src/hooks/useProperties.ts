@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Property, PropertyFilters } from '@/types';
-import { mockProperties } from '@/data/mockData';
 
 export function useProperties(filters?: PropertyFilters) {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -8,11 +8,25 @@ export function useProperties(filters?: PropertyFilters) {
 
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => {
-      setProperties(mockProperties);
+    supabase.from('properties').select('*').then(({ data }) => {
+      if (data) {
+        setProperties(data.map((p) => ({
+          id: p.id,
+          title: p.title,
+          images: (p.images as string[]) ?? [],
+          price: Number(p.price),
+          campus: (p.campus ?? 'Santa Mônica') as Property['campus'],
+          address: p.address ?? '',
+          rooms: p.rooms ?? 1,
+          noFiador: p.no_fiador ?? false,
+          verified: p.verified ?? false,
+          description: p.description ?? '',
+          amenities: (p.amenities as string[]) ?? [],
+          acceptsPet: p.accepts_pet ?? false,
+        })));
+      }
       setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
+    });
   }, []);
 
   const filtered = useMemo(() => {
