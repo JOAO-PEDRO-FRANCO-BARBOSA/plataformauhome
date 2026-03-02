@@ -17,6 +17,7 @@ import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import HostDashboard from "@/pages/HostDashboard";
+import MyProperties from "@/pages/MyProperties";
 import NotFound from "./pages/NotFound";
 import { PropertyWizard } from "@/components/PropertyWizard";
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/host" element={<HostDashboard />} />
               <Route path="/host/new" element={<PropertyWizard />} />
+              <Route path="/my-properties" element={<MyProperties />} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />

@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Home, Search, Users, User, Plus, MessageSquare, LogOut } from 'lucide-react';
+import { Home, Search, Users, User, Plus, MessageSquare, LogOut, Building2 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -71,8 +73,20 @@ function MobileBottomNav() {
 }
 
 function UserMenu() {
-  const { profile, logout } = useAuth();
+  const { profile, logout, user } = useAuth();
   const navigate = useNavigate();
+  const [hasProperties, setHasProperties] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('properties')
+      .select('id', { count: 'exact', head: true })
+      .eq('owner_id', user.id)
+      .then(({ count }) => {
+        setHasProperties((count ?? 0) > 0);
+      });
+  }, [user]);
 
   return (
     <DropdownMenu>
@@ -93,6 +107,11 @@ function UserMenu() {
         <DropdownMenuItem onClick={() => navigate('/messages')} className="cursor-pointer">
           <MessageSquare className="mr-2 h-4 w-4" /> Mensagens
         </DropdownMenuItem>
+        {hasProperties && (
+          <DropdownMenuItem onClick={() => navigate('/my-properties')} className="cursor-pointer">
+            <Building2 className="mr-2 h-4 w-4" /> Meus Imóveis
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={async () => { await logout(); navigate('/login'); }} className="cursor-pointer text-destructive focus:text-destructive">
           <LogOut className="mr-2 h-4 w-4" /> Sair
