@@ -29,14 +29,14 @@ export function SidebarFilters({ filters, onChange }: SidebarFiltersProps) {
 
       <div>
         <Label className="text-xs text-muted-foreground mb-1.5 block">
-          Preço: R$ {filters.priceRange[0]} – R$ {filters.priceRange[1]}
+          Preço máximo: R$ {filters.priceRange[1]}
         </Label>
         <Slider
           min={200}
           max={2500}
           step={50}
-          value={filters.priceRange}
-          onValueChange={(v) => onChange({ ...filters, priceRange: v as [number, number] })}
+          value={[filters.priceRange[1]]}
+          onValueChange={(v) => onChange({ ...filters, priceRange: [200, v[0]] })}
           className="mt-2"
         />
       </div>
