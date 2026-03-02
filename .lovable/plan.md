@@ -1,39 +1,41 @@
 
 
-# Fix: Botão "Finalizar" do Onboarding
+# Gestão de Imóveis e Exclusão de Conta
 
-## Problema
+## Alterações
 
-A função `handleFinish` no `Onboarding.tsx` não captura erros da chamada Supabase. Se o `.update()` falhar (ex: RLS policy restritiva, perfil ainda não criado pelo trigger), a falha é silenciosa — sem feedback ao usuário.
+### 1. `src/pages/Profile.tsx` — Avatar upload + Exclusão de conta
 
-Além disso, as RLS policies nas tabelas estão todas como **RESTRICTIVE** em vez de **PERMISSIVE**, o que pode bloquear operações mesmo quando o usuário está autenticado.
+**Avatar upload fix:**
+- Wrap the Camera button in a `<label>` with a hidden `<input type="file">` so clicking the avatar triggers file selection
+- Upload to `property-images` bucket under `{user.id}/avatar-{timestamp}`
+- Call `updateProfile({ avatar_url: publicUrl })` + `refreshProfile()` to update navbar instantly
 
-## Plano
+**Exclusão de conta:**
+- Add a danger zone Card at the bottom with "Excluir Conta Permanentemente" button (destructive variant)
+- On click, open an AlertDialog with warning text about irreversibility
+- On confirm: delete profile row via edge function (RLS doesn't allow DELETE on profiles), then `supabase.auth.signOut()`, navigate to `/login`
+- Loading state on the confirm button
 
-### 1. Migration: Corrigir RLS policies para PERMISSIVE
+### 2. Edge Function `delete-account` (NEW)
+- Since RLS doesn't permit DELETE on profiles (and we need to also delete from `auth.users`), create an edge function
+- Receives the user's JWT, verifies it, deletes from `profiles` and `properties` where `owner_id = user.id`, then deletes the auth user via admin API using `SUPABASE_SERVICE_ROLE_KEY`
+- This is the secure way to handle full account deletion
 
-As policies atuais na tabela `profiles` são `RESTRICTIVE`. Precisamos recriá-las como `PERMISSIVE` para que o UPDATE funcione corretamente:
+### 3. Migration: Add DELETE policy for properties
+- Allow owners to delete their own properties: `CREATE POLICY "Owners can delete own properties" ON properties FOR DELETE USING (auth.uid() = owner_id)`
 
-```sql
-DROP POLICY IF EXISTS "Usuários podem atualizar o próprio perfil" ON profiles;
-CREATE POLICY "Usuários podem atualizar o próprio perfil" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+### 4. `src/pages/MyProperties.tsx` (NEW)
+- Fetch properties where `owner_id = user.id` (same as HostDashboard but with edit/delete actions)
+- Each card shows: thumbnail, title, price, status badge, "Interessados" counter
+- Delete button with confirmation dialog — calls `supabase.from('properties').delete().eq('id', id)`
+- Edit button navigates to a future edit page (placeholder for now)
+- Route: `/my-properties`
 
-DROP POLICY IF EXISTS "Perfis são visíveis publicamente" ON profiles;
-CREATE POLICY "Perfis são visíveis publicamente" ON profiles FOR SELECT TO public USING (true);
+### 5. `src/components/AppLayout.tsx` — Conditional "Meus Imóveis" menu item
+- In `UserMenu`, run a count query `supabase.from('properties').select('id', { count: 'exact', head: true }).eq('owner_id', user.id)` on mount
+- If count > 0, show "Meus Imóveis" item in dropdown navigating to `/my-properties`
 
-DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
-```
-
-Same fix for `connections`, `messages`, and `properties` policies.
-
-### 2. `src/pages/Onboarding.tsx` — Adicionar try/catch
-
-Envolver a chamada `.update()` em try/catch:
-- Se `error` retornado pelo Supabase, exibir `toast.error(error.message)`
-- Se sucesso, `toast.success` + `navigate('/dashboard')`
-- `setSaving(false)` no bloco `finally`
-- Botão já tem `disabled={saving}` e loading spinner — está correto
-
-Mudança mínima, apenas na função `handleFinish` (linhas 38-61).
+### 6. `src/App.tsx` — Add routes
+- `/my-properties` → `MyProperties`
 
