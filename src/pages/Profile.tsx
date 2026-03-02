@@ -9,15 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { HabitBadges } from '@/components/HabitBadges';
 import { toast } from 'sonner';
-import { Camera, Upload, Loader2 } from 'lucide-react';
+import { Camera, Upload, Loader2, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
   const { profile, updateProfile } = useProfile();
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
@@ -29,6 +34,25 @@ export default function Profile() {
 
   const updateHabit = (key: string, value: any) => {
     updateProfile({ habits: { ...profile.habits, [key]: value } });
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingAvatar(true);
+    try {
+      const path = `${user.id}/avatar-${Date.now()}`;
+      const { error } = await supabase.storage.from('property-images').upload(path, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from('property-images').getPublicUrl(path);
+      await updateProfile({ avatar_url: data.publicUrl });
+      await refreshProfile();
+      toast.success('Foto de perfil atualizada! 📸');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao fazer upload');
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleMatchPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +69,28 @@ export default function Profile() {
       toast.error('Erro ao fazer upload');
     }
     setUploading(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada');
+
+      const res = await supabase.functions.invoke('delete-account', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (res.error) throw new Error(res.error.message || 'Erro ao excluir conta');
+      
+      await logout();
+      navigate('/login');
+      toast.success('Conta excluída com sucesso.');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao excluir conta');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const habits = profile.habits || {};
@@ -65,9 +111,10 @@ export default function Profile() {
               <div className="flex flex-col items-center gap-4">
                 <div className="relative">
                   <img src={profile.avatar_url || '/placeholder.svg'} alt={profile.full_name} className="w-24 h-24 rounded-full object-cover border-4 border-primary/20" />
-                  <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                    <Camera className="w-4 h-4" />
-                  </button>
+                  <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                    {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  </label>
                 </div>
                 <div className="space-y-3 w-full">
                   <div>
@@ -164,6 +211,44 @@ export default function Profile() {
         {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
         Salvar Preferências
       </Button>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="text-lg text-destructive">Zona de Perigo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Ao excluir sua conta, todos os seus dados, matches, mensagens e anúncios serão removidos permanentemente.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 className="h-4 w-4" /> Excluir Conta Permanentemente
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação é <strong>irreversível</strong>. Todos os seus dados, matches, mensagens e anúncios serão deletados permanentemente. Você não poderá recuperar sua conta.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Sim, excluir minha conta
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardContent>
+      </Card>
     </div>
   );
 }
