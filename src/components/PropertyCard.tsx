@@ -10,12 +10,13 @@ import { ContactModal } from './ContactModal';
 interface PropertyCardProps {
   property: Property;
   isFavorite: boolean;
-  onToggleFavorite: (id: string) => void;
+  onToggleFavorite: (id: string) => Promise<void>;
 }
 
 export function PropertyCard({ property, isFavorite, onToggleFavorite }: PropertyCardProps) {
   const [contactOpen, setContactOpen] = useState(false);
   const [imgIndex, setImgIndex] = useState(0);
+  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
   const navigate = useNavigate();
 
   const images = property.images;
@@ -28,6 +29,16 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite }: Propert
   const next = (e: React.MouseEvent) => {
     e.stopPropagation();
     setImgIndex((i) => (i === images.length - 1 ? 0 : i + 1));
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsSavingFavorite(true);
+    try {
+      await onToggleFavorite(property.id);
+    } finally {
+      setIsSavingFavorite(false);
+    }
   };
 
   return (
@@ -73,10 +84,11 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite }: Propert
           )}
           {/* Favorite */}
           <button
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(property.id); }}
-            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white transition-colors"
+            onClick={handleToggleFavorite}
+            disabled={isSavingFavorite}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            <Heart className={`w-5 h-5 ${isFavorite ? 'fill-destructive text-destructive' : 'text-muted-foreground'}`} />
+            <Heart className={`w-5 h-5 transition-all ${isFavorite ? 'fill-destructive text-destructive' : 'text-muted-foreground'} ${isSavingFavorite ? 'scale-90' : ''}`} />
           </button>
           {/* Badges */}
           <div className="absolute bottom-3 left-3 flex gap-1.5">

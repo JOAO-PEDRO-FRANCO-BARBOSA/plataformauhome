@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SlidersHorizontal } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function Marketplace() {
   const [filters, setFilters] = useState<PropertyFilters>({
@@ -20,11 +19,6 @@ export default function Marketplace() {
 
   const { properties, loading } = useProperties(filters);
   const { toggle, isFavorite } = useFavorites();
-
-  const handleToggleFavorite = (id: string) => {
-    toggle(id);
-    toast.success(isFavorite(id) ? 'Removido dos favoritos' : 'Imóvel salvo nos favoritos! 💜');
-  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -88,7 +82,7 @@ export default function Marketplace() {
                   key={p.id}
                   property={p}
                   isFavorite={isFavorite(p.id)}
-                  onToggleFavorite={handleToggleFavorite}
+                  onToggleFavorite={toggle}
                 />
               ))}
             </div>
