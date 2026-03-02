@@ -1,41 +1,25 @@
 
 
-# Gestão de Imóveis e Exclusão de Conta
+# Meus Imóveis + Filtro de Preço + Sidebar
 
 ## Alterações
 
-### 1. `src/pages/Profile.tsx` — Avatar upload + Exclusão de conta
+### 1. `src/pages/MyProperties.tsx` — Already exists, minor tweaks
+The page already exists with proper empty state, CTA, loading, and delete functionality. It's well-implemented. No major changes needed — it already queries `properties` by `owner_id`, shows empty state with "Anunciar Imóvel" CTA, and lists properties with status badges.
 
-**Avatar upload fix:**
-- Wrap the Camera button in a `<label>` with a hidden `<input type="file">` so clicking the avatar triggers file selection
-- Upload to `property-images` bucket under `{user.id}/avatar-{timestamp}`
-- Call `updateProfile({ avatar_url: publicUrl })` + `refreshProfile()` to update navbar instantly
+### 2. `src/components/SidebarFilters.tsx` — Single-value price slider
+- Change the price slider from a dual-thumb range `[min, max]` to a single-thumb "Preço máximo" slider
+- Label changes from "Preço: R$ X – R$ Y" to "Preço máximo: R$ Y"
+- The slider value becomes a single number; the filter passes `[200, maxValue]` as the priceRange to keep backward compatibility with `useProperties`
 
-**Exclusão de conta:**
-- Add a danger zone Card at the bottom with "Excluir Conta Permanentemente" button (destructive variant)
-- On click, open an AlertDialog with warning text about irreversibility
-- On confirm: delete profile row via edge function (RLS doesn't allow DELETE on profiles), then `supabase.auth.signOut()`, navigate to `/login`
-- Loading state on the confirm button
+### 3. `src/types/index.ts` — No changes needed
+The `PropertyFilters.priceRange` stays as `[number, number]` for backward compatibility.
 
-### 2. Edge Function `delete-account` (NEW)
-- Since RLS doesn't permit DELETE on profiles (and we need to also delete from `auth.users`), create an edge function
-- Receives the user's JWT, verifies it, deletes from `profiles` and `properties` where `owner_id = user.id`, then deletes the auth user via admin API using `SUPABASE_SERVICE_ROLE_KEY`
-- This is the secure way to handle full account deletion
+### 4. `src/components/AppLayout.tsx` — Add "Meus Imóveis" to sidebar
+- Add a `Building2` nav item `{ title: 'Meus Imóveis', url: '/my-properties', icon: Building2 }` to the `navItems` array in the desktop sidebar
+- This makes it always visible in the sidebar (matching the reference screenshot pattern), while the dropdown menu keeps the conditional logic already in place
 
-### 3. Migration: Add DELETE policy for properties
-- Allow owners to delete their own properties: `CREATE POLICY "Owners can delete own properties" ON properties FOR DELETE USING (auth.uid() = owner_id)`
-
-### 4. `src/pages/MyProperties.tsx` (NEW)
-- Fetch properties where `owner_id = user.id` (same as HostDashboard but with edit/delete actions)
-- Each card shows: thumbnail, title, price, status badge, "Interessados" counter
-- Delete button with confirmation dialog — calls `supabase.from('properties').delete().eq('id', id)`
-- Edit button navigates to a future edit page (placeholder for now)
-- Route: `/my-properties`
-
-### 5. `src/components/AppLayout.tsx` — Conditional "Meus Imóveis" menu item
-- In `UserMenu`, run a count query `supabase.from('properties').select('id', { count: 'exact', head: true }).eq('owner_id', user.id)` on mount
-- If count > 0, show "Meus Imóveis" item in dropdown navigating to `/my-properties`
-
-### 6. `src/App.tsx` — Add routes
-- `/my-properties` → `MyProperties`
+### Summary of files to edit
+- `src/components/SidebarFilters.tsx` — single-thumb price slider
+- `src/components/AppLayout.tsx` — add "Meus Imóveis" to sidebar navItems
 
