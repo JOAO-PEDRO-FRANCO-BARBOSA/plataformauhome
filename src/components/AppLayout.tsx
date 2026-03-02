@@ -24,6 +24,7 @@ const navItems = [
   { title: 'Marketplace', url: '/marketplace', icon: Search },
   { title: 'Match', url: '/match', icon: Users },
   { title: 'Mensagens', url: '/messages', icon: MessageSquare },
+  { title: 'Meus Imóveis', url: '/my-properties', icon: Building2 },
   { title: 'Perfil', url: '/profile', icon: User },
 ];
 
