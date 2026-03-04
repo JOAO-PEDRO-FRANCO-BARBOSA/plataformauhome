@@ -1,63 +1,25 @@
 
 
-# Admin Property Review — Página de Dossiê Detalhado
+# Meus Imóveis + Filtro de Preço + Sidebar
 
-## Resumo
+## Alterações
 
-Criar uma nova página `AdminPropertyReview.tsx` acessível via `/admin/properties/:id` que exibe o dossiê completo de um imóvel pendente. O `AdminDashboard` passa a ser apenas uma lista resumida com link "Revisar" — sem botões de aprovar/rejeitar inline.
+### 1. `src/pages/MyProperties.tsx` — Already exists, minor tweaks
+The page already exists with proper empty state, CTA, loading, and delete functionality. It's well-implemented. No major changes needed — it already queries `properties` by `owner_id`, shows empty state with "Anunciar Imóvel" CTA, and lists properties with status badges.
 
-## Arquivos a criar/editar
+### 2. `src/components/SidebarFilters.tsx` — Single-value price slider
+- Change the price slider from a dual-thumb range `[min, max]` to a single-thumb "Preço máximo" slider
+- Label changes from "Preço: R$ X – R$ Y" to "Preço máximo: R$ Y"
+- The slider value becomes a single number; the filter passes `[200, maxValue]` as the priceRange to keep backward compatibility with `useProperties`
 
-### 1. `src/pages/AdminPropertyReview.tsx` (NOVO)
+### 3. `src/types/index.ts` — No changes needed
+The `PropertyFilters.priceRange` stays as `[number, number]` for backward compatibility.
 
-Página que recebe o `id` via `useParams`, faz fetch do imóvel no Supabase (`properties` table), gera signed URLs para documentos do bucket privado `property-documents`, e exibe:
+### 4. `src/components/AppLayout.tsx` — Add "Meus Imóveis" to sidebar
+- Add a `Building2` nav item `{ title: 'Meus Imóveis', url: '/my-properties', icon: Building2 }` to the `navItems` array in the desktop sidebar
+- This makes it always visible in the sidebar (matching the reference screenshot pattern), while the dropdown menu keeps the conditional logic already in place
 
-- **Header**: Botão voltar para `/admin`, título do imóvel, Badge de status "Pendente"
-- **Dados de texto** (Card): Título, Endereço, Campus, Preço (formatado R$), Quartos, Banheiros, Descrição. Flags "Aceita Pet" e "Sem Fiador" como Badges coloridos
-- **Comodidades**: Grid de Badge tags (Wi-Fi, Garagem, etc.)
-- **Galeria de Fotos**: Grid responsivo 2-3 colunas com as imagens públicas do array `images`
-- **Documentação Comprobatória**: Cards para cada `document_paths` entry com nome do arquivo e botão "Baixar/Visualizar" (usando signed URLs)
-- **Rodapé fixo (sticky bottom)**: Dois botões grandes — "Aprovar Anúncio" (primary/green) e "Rejeitar Anúncio" (destructive). Chamam `supabase.from('properties').update({ status, validation_status })` e redirecionam para `/admin`
-
-### 2. `src/pages/AdminDashboard.tsx` (EDITAR)
-
-- Remover os botões "Aprovar" / "Rejeitar" de cada card
-- Alterar o link "Ver anúncio" (`/marketplace/:id`) para "Revisar" apontando para `/admin/properties/:id`
-- Manter a contagem e layout de lista resumida
-
-### 3. `src/App.tsx` (EDITAR)
-
-- Adicionar rota `/admin/properties/:id` dentro do `AppLayout`, protegida por `AdminRoute`:
-  ```
-  <Route path="/admin/properties/:id" element={<AdminRoute><AdminPropertyReview /></AdminRoute>} />
-  ```
-
-## Estrutura visual do AdminPropertyReview
-
-```text
-┌─────────────────────────────────────────┐
-│ ← Voltar    Título do Imóvel   [Pendente]│
-├─────────────────────────────────────────┤
-│ Informações Gerais                       │
-│  Endereço: ...   Campus: ...             │
-│  Preço: R$ ...   Quartos: X  Banhos: Y   │
-│  Descrição: ...                          │
-│  [Aceita Pet] [Sem Fiador]               │
-│                                          │
-│ Comodidades                              │
-│  [Wi-Fi] [Garagem] [Mobiliado] ...       │
-├─────────────────────────────────────────┤
-│ Galeria de Fotos                         │
-│  ┌───┐ ┌───┐ ┌───┐                      │
-│  │   │ │   │ │   │                      │
-│  └───┘ └───┘ └───┘                      │
-├─────────────────────────────────────────┤
-│ Documentação Comprobatória               │
-│  ┌─────────────────┐ ┌────────────────┐  │
-│  │ Doc 1  [Baixar] │ │ Doc 2 [Baixar] │  │
-│  └─────────────────┘ └────────────────┘  │
-├─────────────────────────────────────────┤
-│  [  Aprovar Anúncio  ] [Rejeitar Anúncio]│
-└─────────────────────────────────────────┘
-```
+### Summary of files to edit
+- `src/components/SidebarFilters.tsx` — single-thumb price slider
+- `src/components/AppLayout.tsx` — add "Meus Imóveis" to sidebar navItems
 

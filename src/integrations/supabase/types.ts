@@ -180,8 +180,8 @@ export type Database = {
           bathrooms: number | null
           campus: string | null
           created_at: string
-          document_paths: string[] | null
           description: string | null
+          document_paths: string[] | null
           id: string
           images: string[] | null
           no_fiador: boolean | null
@@ -200,8 +200,8 @@ export type Database = {
           bathrooms?: number | null
           campus?: string | null
           created_at?: string
-          document_paths?: string[] | null
           description?: string | null
+          document_paths?: string[] | null
           id?: string
           images?: string[] | null
           no_fiador?: boolean | null
@@ -220,8 +220,8 @@ export type Database = {
           bathrooms?: number | null
           campus?: string | null
           created_at?: string
-          document_paths?: string[] | null
           description?: string | null
+          document_paths?: string[] | null
           id?: string
           images?: string[] | null
           no_fiador?: boolean | null
