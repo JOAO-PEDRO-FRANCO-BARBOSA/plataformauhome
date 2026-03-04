@@ -39,6 +39,33 @@ const initialData: WizardData = {
   price: '', acceptsPet: false, description: '',
 };
 
+const STEPS = ['Localização', 'Características', 'Documentação', 'Fotos'];
+
+function validateStep(step: number, data: WizardData): string | null {
+  switch (step) {
+    case 0:
+      if (!data.title.trim()) return 'Preencha o título do anúncio';
+      if (!data.address.trim()) return 'Preencha o endereço';
+      if (!data.campus) return 'Selecione o campus mais próximo';
+      return null;
+    case 1:
+      if (data.rooms < 1) return 'Informe a quantidade de quartos';
+      if (data.bathrooms < 1) return 'Informe a quantidade de banheiros';
+      if (data.amenities.length < 1) return 'Selecione ao menos 1 comodidade';
+      if (!data.description.trim()) return 'Preencha a descrição do imóvel';
+      return null;
+    case 2:
+      if (data.docs.length < 1) return 'Envie ao menos 1 documento (contrato/comprovante)';
+      if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
+      return null;
+    case 3:
+      if (data.photos.length < 1) return 'Envie ao menos 1 foto do imóvel';
+      return null;
+    default:
+      return null;
+  }
+}
+
 export function PropertyWizard() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(initialData);
@@ -47,18 +74,31 @@ export function PropertyWizard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const steps = ['Localização', 'Características', 'Fotos', 'Documentação'];
-  const progress = ((step + 1) / steps.length) * 100;
+  const progress = ((step + 1) / STEPS.length) * 100;
 
   const toggleAmenity = (a: string) =>
     setData((d) => ({ ...d, amenities: d.amenities.includes(a) ? d.amenities.filter((x) => x !== a) : [...d.amenities, a] }));
 
+  const handleNext = () => {
+    const error = validateStep(step, data);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    setStep((s) => s + 1);
+  };
+
   const handlePublish = async () => {
+    const error = validateStep(step, data);
+    if (error) {
+      toast.error(error);
+      return;
+    }
     if (!user) { toast.error('Faça login primeiro'); return; }
     setPublishing(true);
 
     try {
-      // Upload photos
+      // Upload photos to public bucket
       const imageUrls: string[] = [];
       for (const photo of data.photos) {
         const path = `${user.id}/${Date.now()}-${photo.name}`;
@@ -69,9 +109,15 @@ export function PropertyWizard() {
         }
       }
 
+      // Upload docs to private bucket
+      for (const doc of data.docs) {
+        const path = `${user.id}/${Date.now()}-${doc.name}`;
+        await supabase.storage.from('property-documents').upload(path, doc);
+      }
+
       const { error } = await supabase.from('properties').insert({
         owner_id: user.id,
-        title: data.title || `Imóvel em ${data.campus}`,
+        title: data.title,
         address: data.address,
         campus: data.campus || null,
         rooms: data.rooms,
@@ -80,7 +126,7 @@ export function PropertyWizard() {
         images: imageUrls,
         no_fiador: data.noFiador,
         verified: false,
-        price: Number(data.price) || 0,
+        price: Number(data.price),
         accepts_pet: data.acceptsPet,
         description: data.description,
         validation_status: 'pending_docs',
@@ -121,7 +167,7 @@ export function PropertyWizard() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="space-y-2">
         <div className="flex justify-between text-xs text-muted-foreground">
-          {steps.map((s, i) => (
+          {STEPS.map((s, i) => (
             <span key={s} className={i <= step ? 'text-primary font-medium' : ''}>{s}</span>
           ))}
         </div>
@@ -133,15 +179,15 @@ export function PropertyWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Localização do Imóvel</h3>
             <div className="space-y-2">
-              <Label htmlFor="title">Título do anúncio</Label>
+              <Label htmlFor="title">Título do anúncio *</Label>
               <Input id="title" placeholder="Ex: Kitnet mobiliada perto da UFU" value={data.title} onChange={(e) => setData({ ...data, title: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Endereço completo</Label>
+              <Label htmlFor="address">Endereço completo *</Label>
               <Input id="address" placeholder="Rua, número, bairro" value={data.address} onChange={(e) => setData({ ...data, address: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Campus mais próximo</Label>
+              <Label>Campus mais próximo *</Label>
               <Select value={data.campus} onValueChange={(v) => setData({ ...data, campus: v as Campus })}>
                 <SelectTrigger><SelectValue placeholder="Selecione o campus" /></SelectTrigger>
                 <SelectContent>
@@ -157,16 +203,16 @@ export function PropertyWizard() {
             <h3 className="text-lg font-semibold">Características</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="rooms">Quartos</Label>
+                <Label htmlFor="rooms">Quartos *</Label>
                 <Input id="rooms" type="number" min={1} value={data.rooms} onChange={(e) => setData({ ...data, rooms: Number(e.target.value) })} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="baths">Banheiros</Label>
+                <Label htmlFor="baths">Banheiros *</Label>
                 <Input id="baths" type="number" min={1} value={data.bathrooms} onChange={(e) => setData({ ...data, bathrooms: Number(e.target.value) })} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Comodidades</Label>
+              <Label>Comodidades (mín. 1) *</Label>
               <div className="grid grid-cols-2 gap-2">
                 {AMENITIES.map((a) => (
                   <label key={a} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -177,7 +223,7 @@ export function PropertyWizard() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="desc">Descrição</Label>
+              <Label htmlFor="desc">Descrição *</Label>
               <Input id="desc" placeholder="Descreva o imóvel..." value={data.description} onChange={(e) => setData({ ...data, description: e.target.value })} />
             </div>
             <div className="flex items-center justify-between">
@@ -189,17 +235,10 @@ export function PropertyWizard() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Fotos do Imóvel</h3>
-            <DragDropZone accept="image/*" maxFiles={6} onFilesChange={(f) => setData({ ...data, photos: f })} label="Arraste fotos do imóvel ou clique para selecionar" />
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-4">
             <h3 className="text-lg font-semibold">Documentação e Preço</h3>
-            <DragDropZone accept=".pdf,image/*" maxFiles={3} onFilesChange={(f) => setData({ ...data, docs: f })} label="Arraste contrato/comprovante (PDF ou foto)" />
+            <DragDropZone accept=".pdf,image/*" maxFiles={3} onFilesChange={(f) => setData({ ...data, docs: f })} label="Arraste contrato/comprovante (PDF ou foto) *" />
             <div className="space-y-2">
-              <Label htmlFor="price">Preço mensal (R$)</Label>
+              <Label htmlFor="price">Preço mensal (R$) *</Label>
               <Input id="price" type="number" placeholder="850" value={data.price} onChange={(e) => setData({ ...data, price: e.target.value })} />
             </div>
             <div className="flex items-center justify-between">
@@ -208,16 +247,23 @@ export function PropertyWizard() {
             </div>
           </div>
         )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Fotos do Imóvel</h3>
+            <DragDropZone accept="image/*" maxFiles={6} onFilesChange={(f) => setData({ ...data, photos: f })} label="Arraste fotos do imóvel ou clique para selecionar (mín. 1) *" />
+          </div>
+        )}
       </div>
 
       <div className="flex justify-between pt-4 border-t">
         <Button variant="outline" onClick={() => setStep((s) => s - 1)} disabled={step === 0} className="gap-1">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-        {step < steps.length - 1 ? (
-          <Button onClick={() => setStep((s) => s + 1)} className="gap-1">Avançar <ArrowRight className="h-4 w-4" /></Button>
+        {step < STEPS.length - 1 ? (
+          <Button onClick={handleNext} className="gap-1">Avançar <ArrowRight className="h-4 w-4" /></Button>
         ) : (
-          <Button onClick={handlePublish} className="gap-1">Publicar <CheckCircle2 className="h-4 w-4" /></Button>
+          <Button onClick={handlePublish} className="gap-1">Finalizar Anúncio <CheckCircle2 className="h-4 w-4" /></Button>
         )}
       </div>
     </div>

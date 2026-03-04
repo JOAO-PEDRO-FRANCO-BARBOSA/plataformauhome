@@ -7,7 +7,6 @@ export function useFavorites() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Carregar favoritos ao inicializar
   useEffect(() => {
     const loadFavorites = async () => {
       try {
@@ -15,12 +14,12 @@ export function useFavorites() {
         if (!user) return;
 
         const { data, error } = await supabase
-          .from('favorites')
+          .from('favorites' as any)
           .select('property_id')
           .eq('user_id', user.id);
 
         if (error) throw error;
-        setFavoriteIds(data?.map((fav) => fav.property_id) || []);
+        setFavoriteIds((data as any[])?.map((fav: any) => fav.property_id) || []);
       } catch (err) {
         console.error('Erro ao carregar favoritos:', err);
       }
@@ -29,7 +28,6 @@ export function useFavorites() {
     loadFavorites();
   }, []);
 
-  // Toggle favorite no Supabase
   const toggle = useCallback(async (id: string) => {
     setLoading(true);
     try {
@@ -47,39 +45,27 @@ export function useFavorites() {
       const isFav = favoriteIds.includes(id);
 
       if (isFav) {
-        // Remover dos favoritos
         const { error } = await supabase
-          .from('favorites')
+          .from('favorites' as any)
           .delete()
           .eq('user_id', user.id)
           .eq('property_id', id);
 
         if (error) throw error;
         setFavoriteIds((prev) => prev.filter((fid) => fid !== id));
-        toast({
-          title: 'Removido',
-          description: 'Imóvel removido dos favoritos',
-        });
+        toast({ title: 'Removido', description: 'Imóvel removido dos favoritos' });
       } else {
-        // Adicionar aos favoritos
         const { error } = await supabase
-          .from('favorites')
-          .insert([{ user_id: user.id, property_id: id }]);
+          .from('favorites' as any)
+          .insert([{ user_id: user.id, property_id: id }] as any);
 
         if (error) throw error;
         setFavoriteIds((prev) => [...prev, id]);
-        toast({
-          title: 'Salvo',
-          description: 'Imóvel salvo nos favoritos!',
-        });
+        toast({ title: 'Salvo', description: 'Imóvel salvo nos favoritos!' });
       }
     } catch (err) {
       console.error('Erro ao atualizar favorito:', err);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o favorito',
-        variant: 'destructive',
-      });
+      toast({ title: 'Erro', description: 'Não foi possível atualizar o favorito', variant: 'destructive' });
     } finally {
       setLoading(false);
     }

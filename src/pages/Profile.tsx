@@ -12,25 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { HabitBadges } from '@/components/HabitBadges';
 import { toast } from 'sonner';
-import { Camera, Upload, Loader2, Trash2 } from 'lucide-react';
+import { Camera, Upload, Loader2, Trash2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, isSaving } = useProfile();
   const { user, refreshProfile, logout } = useAuth();
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    await updateProfile(profile);
-    await refreshProfile();
-    setSaving(false);
-    toast.success('Preferências atualizadas! 💜');
-  };
 
   const updateHabit = (key: string, value: any) => {
     updateProfile({ habits: { ...profile.habits, [key]: value } });
@@ -97,7 +88,16 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Meu Perfil</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Meu Perfil</h1>
+        <span className={`text-xs flex items-center gap-1 transition-opacity duration-300 ${isSaving ? 'opacity-100 text-muted-foreground' : 'opacity-70 text-primary'}`}>
+          {isSaving ? (
+            <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
+          ) : (
+            <><Check className="h-3 w-3" /> Salvo automaticamente</>
+          )}
+        </span>
+      </div>
 
       <Tabs defaultValue="dados" className="w-full">
         <TabsList className="w-full">
@@ -206,11 +206,6 @@ export default function Profile() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Button onClick={handleSave} className="w-full" size="lg" disabled={saving}>
-        {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-        Salvar Preferências
-      </Button>
 
       {/* Danger Zone */}
       <Card className="border-destructive/50">
