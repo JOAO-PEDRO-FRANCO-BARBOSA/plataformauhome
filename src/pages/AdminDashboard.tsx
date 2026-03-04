@@ -22,7 +22,6 @@ interface PendingProperty {
 export default function AdminDashboard() {
   const [properties, setProperties] = useState<PendingProperty[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<UpdatingState>({});
 
   const resolveDocumentLinks = useCallback(async (paths: string[] | null) => {
     try {
