@@ -129,8 +129,7 @@ export default function AdminDashboard() {
                 </Button>
               </CardContent>
             </Card>
-          );
-        })
+          ))
       )}
     </div>
   );
