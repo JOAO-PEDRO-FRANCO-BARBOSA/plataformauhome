@@ -13,16 +13,11 @@ interface PendingProperty {
   address: string | null;
   campus: string | null;
   price: number;
-  images: string[] | null;
   thumbnailUrl: string | null;
-  document_paths: string[] | null;
   created_at: string;
   status: string;
-  iptuUrl: string | null;
-  identidadeUrl: string | null;
 }
 
-type UpdatingState = Record<string, 'approved' | 'rejected' | null>;
 
 export default function AdminDashboard() {
   const [properties, setProperties] = useState<PendingProperty[]>([]);
