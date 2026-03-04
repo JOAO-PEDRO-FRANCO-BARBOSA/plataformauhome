@@ -23,43 +23,6 @@ export default function AdminDashboard() {
   const [properties, setProperties] = useState<PendingProperty[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const resolveDocumentLinks = useCallback(async (paths: string[] | null) => {
-    try {
-      if (!paths || paths.length === 0) {
-        return { iptuUrl: null, identidadeUrl: null };
-      }
-
-      const normalize = (value: string) => value.toLowerCase();
-
-      const iptuPath = paths.find((path) => normalize(path).includes('iptu')) ?? paths[0] ?? null;
-      const identidadePath = paths.find((path) => {
-        const lowerPath = normalize(path);
-        return (
-          lowerPath.includes('identidade') ||
-          lowerPath.includes('documento') ||
-          lowerPath.includes('rg') ||
-          lowerPath.includes('cpf')
-        );
-      }) ?? paths[1] ?? null;
-
-      const [iptuSigned, identidadeSigned] = await Promise.all([
-        iptuPath
-          ? supabase.storage.from('property-documents').createSignedUrl(iptuPath, 60 * 60)
-          : Promise.resolve({ data: null, error: null }),
-        identidadePath
-          ? supabase.storage.from('property-documents').createSignedUrl(identidadePath, 60 * 60)
-          : Promise.resolve({ data: null, error: null }),
-      ]);
-
-      return {
-        iptuUrl: iptuSigned.data?.signedUrl ?? null,
-        identidadeUrl: identidadeSigned.data?.signedUrl ?? null,
-      };
-    } catch {
-      return { iptuUrl: null, identidadeUrl: null };
-    }
-  }, []);
-
   const fetchPendingProperties = useCallback(async () => {
     setLoading(true);
     try {
