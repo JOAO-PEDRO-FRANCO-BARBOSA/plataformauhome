@@ -8,6 +8,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { Trash2, Edit, Loader2, Home, Plus, AlertTriangle, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { MediaCarousel } from '@/components/MediaCarousel';
+import { ImageLightbox } from '@/components/ImageLightbox';
 
 interface Property {
   id: string;
@@ -36,6 +38,9 @@ export default function MyProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     const fetchMyProperties = async () => {
@@ -117,18 +122,27 @@ export default function MyProperties() {
           const isPending = propertyStatus === 'pending' || propertyStatus === 'pending_docs';
           const isApproved = propertyStatus === 'approved';
           const isRejected = propertyStatus === 'rejected';
-          const thumb = prop.images?.[0] || '/placeholder.svg';
+          const mediaItems = (prop.images?.length ? prop.images : ['/placeholder.svg']).map((url, index) => ({
+            url,
+            alt: `${prop.title} - imagem ${index + 1}`,
+          }));
           const requestedAt = new Date(prop.created_at).toLocaleDateString('pt-BR');
 
           return (
             <Card key={prop.id} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex flex-col sm:flex-row">
-                  <img
-                    src={thumb}
-                    alt={prop.title}
-                    className="w-full sm:w-40 h-32 sm:h-auto object-cover"
-                  />
+                  <div className="w-full sm:w-56 p-2">
+                    <MediaCarousel
+                      items={mediaItems}
+                      className="h-full"
+                      onItemClick={(index) => {
+                        setLightboxImages(mediaItems.map((item) => item.url));
+                        setLightboxIndex(index);
+                        setLightboxOpen(true);
+                      }}
+                    />
+                  </div>
                   <div className="flex-1 p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -213,6 +227,13 @@ export default function MyProperties() {
           );
         })}
       </div>
+
+      <ImageLightbox
+        open={lightboxOpen}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+      />
     </div>
   );
 }

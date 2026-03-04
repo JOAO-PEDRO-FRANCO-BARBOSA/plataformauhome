@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, Download, Eye, MapPin, BedDouble, Bath, DollarSign, PawPrint, ShieldCheck, FileText } from 'lucide-react';
 import { ImageLightbox } from '@/components/ImageLightbox';
+import { MediaCarousel } from '@/components/MediaCarousel';
 
 interface PropertyDetail {
   id: string;
@@ -265,21 +266,13 @@ export default function AdminPropertyReview() {
             <CardTitle className="text-lg">Galeria de Fotos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {property.images.map((img, index) => (
-                <img
-                  key={index}
-                  src={img}
-                  alt={`Foto ${index + 1} - ${property.title}`}
-                  className="w-full h-40 object-cover rounded-lg border cursor-zoom-in"
-                  loading="lazy"
-                  onClick={() => {
-                    setGalleryIndex(index);
-                    setGalleryOpen(true);
-                  }}
-                />
-              ))}
-            </div>
+            <MediaCarousel
+              items={property.images.map((url, index) => ({ url, alt: `Foto ${index + 1} - ${property.title}` }))}
+              onItemClick={(index) => {
+                setGalleryIndex(index);
+                setGalleryOpen(true);
+              }}
+            />
           </CardContent>
         </Card>
       )}
@@ -294,48 +287,42 @@ export default function AdminPropertyReview() {
           {documents.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum documento enviado.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {documents.map((doc, index) => (
-                <div key={index} className="flex items-center justify-between gap-2 rounded-lg border p-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{doc.name}</p>
+            <div className="space-y-4">
+              {documentImageUrls.length > 0 && (
+                <MediaCarousel
+                  items={documentImageUrls.map((url, index) => ({ url, alt: `Documento ${index + 1}` }))}
+                  onItemClick={(index) => {
+                    setDocsIndex(index);
+                    setDocsOpen(true);
+                  }}
+                />
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {documents.map((doc, index) => (
+                  <div key={index} className="flex items-center justify-between gap-2 rounded-lg border p-2.5">
+                    <p className="text-xs sm:text-sm font-medium truncate">{doc.name}</p>
+                    <div className="flex gap-1 shrink-0">
+                      {doc.previewUrl && !doc.isImage && (
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={doc.previewUrl} target="_blank" rel="noreferrer">
+                            <Eye className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      {doc.downloadUrl ? (
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={doc.downloadUrl} download title="Baixar Arquivo Original">
+                            <Download className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Indisponível</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    {doc.previewUrl ? (
-                      <>
-                        {doc.isImage ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              const lightboxDocIndex = documentImageUrls.findIndex((url) => url === doc.previewUrl);
-                              setDocsIndex(lightboxDocIndex < 0 ? 0 : lightboxDocIndex);
-                              setDocsOpen(true);
-                            }}
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" asChild>
-                            <a href={doc.previewUrl} target="_blank" rel="noreferrer">
-                              <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                            </a>
-                          </Button>
-                        )}
-                        {doc.downloadUrl && (
-                          <Button size="sm" variant="outline" asChild>
-                            <a href={doc.downloadUrl} download>
-                              <Download className="h-3.5 w-3.5 mr-1" /> Baixar
-                            </a>
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Indisponível</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

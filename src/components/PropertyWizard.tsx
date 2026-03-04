@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DragDropZone } from '@/components/DragDropZone';
+import { ImageLightbox } from '@/components/ImageLightbox';
+import { MediaCarousel } from '@/components/MediaCarousel';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -43,6 +45,82 @@ const initialData: WizardData = {
 
 const STEPS = ['Localização', 'Características', 'Documentação', 'Fotos'];
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+
+function normalizeDocument(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 14);
+}
+
+function formatCpfCnpj(value: string): string {
+  const digits = normalizeDocument(value);
+
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+
+  return digits
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1/$2')
+    .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+}
+
+function allDigitsEqual(value: string): boolean {
+  return /^([0-9])\1+$/.test(value);
+}
+
+function isValidCpf(cpf: string): boolean {
+  if (cpf.length !== 11 || allDigitsEqual(cpf)) return false;
+
+  let sum = 0;
+  for (let i = 0; i < 9; i += 1) {
+    sum += Number(cpf[i]) * (10 - i);
+  }
+  let firstDigit = (sum * 10) % 11;
+  if (firstDigit === 10) firstDigit = 0;
+  if (firstDigit !== Number(cpf[9])) return false;
+
+  sum = 0;
+  for (let i = 0; i < 10; i += 1) {
+    sum += Number(cpf[i]) * (11 - i);
+  }
+  let secondDigit = (sum * 10) % 11;
+  if (secondDigit === 10) secondDigit = 0;
+
+  return secondDigit === Number(cpf[10]);
+}
+
+function isValidCnpj(cnpj: string): boolean {
+  if (cnpj.length !== 14 || allDigitsEqual(cnpj)) return false;
+
+  const calcDigit = (base: string, weights: number[]) => {
+    const total = base
+      .split('')
+      .reduce((acc, digit, index) => acc + Number(digit) * weights[index], 0);
+    const remainder = total % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+
+  const firstDigit = calcDigit(cnpj.slice(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const secondDigit = calcDigit(cnpj.slice(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+
+  return firstDigit === Number(cnpj[12]) && secondDigit === Number(cnpj[13]);
+}
+
+function isValidCpfCnpj(value: string): boolean {
+  const digits = normalizeDocument(value);
+  if (digits.length === 11) return isValidCpf(digits);
+  if (digits.length === 14) return isValidCnpj(digits);
+  return false;
+}
+
+function isValidEmail(value: string): boolean {
+  return EMAIL_REGEX.test(value.trim());
+}
+
 function validateStep(step: number, data: WizardData): string | null {
   switch (step) {
     case 0:
@@ -60,7 +138,9 @@ function validateStep(step: number, data: WizardData): string | null {
       if (data.docs.length < 1) return 'Envie ao menos 1 documento (contrato/comprovante)';
       if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
       if (!data.ownerCpfCnpj.trim()) return 'Informe CPF/CNPJ do proprietário';
+      if (!isValidCpfCnpj(data.ownerCpfCnpj)) return 'CPF/CNPJ inválido. Revise o documento informado';
       if (!data.ownerEmail.trim()) return 'Informe o e-mail do proprietário';
+      if (!isValidEmail(data.ownerEmail)) return 'E-mail inválido. Revise o formato informado';
       return null;
     case 3:
       if (data.photos.length < 1) return 'Envie ao menos 1 foto do imóvel';
@@ -78,7 +158,9 @@ function validateStepForEdit(step: number, data: WizardData): string | null {
     case 2:
       if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
       if (!data.ownerCpfCnpj.trim()) return 'Informe CPF/CNPJ do proprietário';
+      if (!isValidCpfCnpj(data.ownerCpfCnpj)) return 'CPF/CNPJ inválido. Revise o documento informado';
       if (!data.ownerEmail.trim()) return 'Informe o e-mail do proprietário';
+      if (!isValidEmail(data.ownerEmail)) return 'E-mail inválido. Revise o formato informado';
       return null;
     case 3:
       return null;
@@ -97,6 +179,11 @@ export function PropertyWizard() {
   const [success, setSuccess] = useState(false);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [existingDocumentPaths, setExistingDocumentPaths] = useState<string[]>([]);
+  const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
+  const [docPreviewUrls, setDocPreviewUrls] = useState<string[]>([]);
+  const [previewLightboxOpen, setPreviewLightboxOpen] = useState(false);
+  const [previewLightboxIndex, setPreviewLightboxIndex] = useState(0);
+  const [previewLightboxImages, setPreviewLightboxImages] = useState<string[]>([]);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -104,6 +191,38 @@ export function PropertyWizard() {
 
   const toggleAmenity = (a: string) =>
     setData((d) => ({ ...d, amenities: d.amenities.includes(a) ? d.amenities.filter((x) => x !== a) : [...d.amenities, a] }));
+
+  const stepError = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
+  const ownerDocumentError =
+    step === 2 && data.ownerCpfCnpj.trim() && !isValidCpfCnpj(data.ownerCpfCnpj)
+      ? 'CPF/CNPJ inválido.'
+      : null;
+  const ownerEmailError =
+    step === 2 && data.ownerEmail.trim() && !isValidEmail(data.ownerEmail)
+      ? 'Formato de e-mail inválido.'
+      : null;
+
+  const previewPhotoImages = useMemo(() => [...existingImages, ...photoPreviewUrls], [existingImages, photoPreviewUrls]);
+  const previewDocImages = useMemo(() => docPreviewUrls, [docPreviewUrls]);
+
+  useEffect(() => {
+    const nextPreviewUrls = data.photos.map((photo) => URL.createObjectURL(photo));
+    setPhotoPreviewUrls(nextPreviewUrls);
+
+    return () => {
+      nextPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [data.photos]);
+
+  useEffect(() => {
+    const imageDocs = data.docs.filter((doc) => doc.type.startsWith('image/'));
+    const nextPreviewUrls = imageDocs.map((doc) => URL.createObjectURL(doc));
+    setDocPreviewUrls(nextPreviewUrls);
+
+    return () => {
+      nextPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [data.docs]);
 
   const handleNext = () => {
     const error = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
@@ -139,7 +258,7 @@ export function PropertyWizard() {
           amenities: existingProperty.amenities ?? [],
           noFiador: existingProperty.no_fiador ?? false,
           price: String(existingProperty.price ?? ''),
-          ownerCpfCnpj: existingProperty.owner_cpf_cnpj ?? '',
+          ownerCpfCnpj: formatCpfCnpj(existingProperty.owner_cpf_cnpj ?? ''),
           ownerEmail: existingProperty.owner_email ?? '',
           acceptsPet: existingProperty.accepts_pet ?? false,
           description: existingProperty.description ?? '',
@@ -202,8 +321,8 @@ export function PropertyWizard() {
             images: imageUrls,
             no_fiador: data.noFiador,
             price: Number(data.price),
-            owner_cpf_cnpj: data.ownerCpfCnpj,
-            owner_email: data.ownerEmail,
+            owner_cpf_cnpj: normalizeDocument(data.ownerCpfCnpj),
+            owner_email: data.ownerEmail.trim().toLowerCase(),
             document_paths: documentPaths,
             accepts_pet: data.acceptsPet,
             description: data.description,
@@ -228,8 +347,8 @@ export function PropertyWizard() {
           no_fiador: data.noFiador,
           verified: false,
           price: Number(data.price),
-          owner_cpf_cnpj: data.ownerCpfCnpj,
-          owner_email: data.ownerEmail,
+            owner_cpf_cnpj: normalizeDocument(data.ownerCpfCnpj),
+            owner_email: data.ownerEmail.trim().toLowerCase(),
           document_paths: documentPaths,
           accepts_pet: data.acceptsPet,
           description: data.description,
@@ -353,6 +472,19 @@ export function PropertyWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Documentação e Preço</h3>
             <DragDropZone accept=".pdf,image/*" maxFiles={3} onFilesChange={(f) => setData({ ...data, docs: f })} label="Arraste contrato/comprovante (PDF ou foto) *" />
+            {previewDocImages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Preview dos documentos (imagem)</p>
+                <MediaCarousel
+                  items={previewDocImages.map((url, index) => ({ url, alt: `Documento ${index + 1}` }))}
+                  onItemClick={(index) => {
+                    setPreviewLightboxImages(previewDocImages);
+                    setPreviewLightboxIndex(index);
+                    setPreviewLightboxOpen(true);
+                  }}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="price">Preço mensal (R$) *</Label>
               <Input id="price" type="number" placeholder="850" value={data.price} onChange={(e) => setData({ ...data, price: e.target.value })} />
@@ -364,8 +496,9 @@ export function PropertyWizard() {
                   id="ownerCpfCnpj"
                   placeholder="Ex: 123.456.789-00"
                   value={data.ownerCpfCnpj}
-                  onChange={(e) => setData({ ...data, ownerCpfCnpj: e.target.value })}
+                  onChange={(e) => setData({ ...data, ownerCpfCnpj: formatCpfCnpj(e.target.value) })}
                 />
+                {ownerDocumentError && <p className="text-xs text-destructive">{ownerDocumentError}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ownerEmail">E-mail do proprietário *</Label>
@@ -376,6 +509,7 @@ export function PropertyWizard() {
                   value={data.ownerEmail}
                   onChange={(e) => setData({ ...data, ownerEmail: e.target.value })}
                 />
+                {ownerEmailError && <p className="text-xs text-destructive">{ownerEmailError}</p>}
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -389,6 +523,19 @@ export function PropertyWizard() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Fotos do Imóvel</h3>
             <DragDropZone accept="image/*" maxFiles={6} onFilesChange={(f) => setData({ ...data, photos: f })} label="Arraste fotos do imóvel ou clique para selecionar (mín. 1) *" />
+            {previewPhotoImages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Preview das fotos</p>
+                <MediaCarousel
+                  items={previewPhotoImages.map((url, index) => ({ url, alt: `Foto ${index + 1}` }))}
+                  onItemClick={(index) => {
+                    setPreviewLightboxImages(previewPhotoImages);
+                    setPreviewLightboxIndex(index);
+                    setPreviewLightboxOpen(true);
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -398,11 +545,18 @@ export function PropertyWizard() {
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button onClick={handleNext} className="gap-1">Avançar <ArrowRight className="h-4 w-4" /></Button>
+          <Button onClick={handleNext} className="gap-1" disabled={Boolean(stepError)}>Avançar <ArrowRight className="h-4 w-4" /></Button>
         ) : (
-          <Button onClick={handlePublish} className="gap-1">{isEditMode ? 'Salvar Edição' : 'Finalizar Anúncio'} <CheckCircle2 className="h-4 w-4" /></Button>
+          <Button onClick={handlePublish} className="gap-1" disabled={Boolean(stepError)}>{isEditMode ? 'Salvar Edição' : 'Finalizar Anúncio'} <CheckCircle2 className="h-4 w-4" /></Button>
         )}
       </div>
+
+      <ImageLightbox
+        open={previewLightboxOpen}
+        images={previewLightboxImages}
+        initialIndex={previewLightboxIndex}
+        onClose={() => setPreviewLightboxOpen(false)}
+      />
     </div>
   );
 }

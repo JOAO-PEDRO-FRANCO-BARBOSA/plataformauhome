@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { ArrowLeft, MapPin, BedDouble, Bath, Trash2, Edit, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, BedDouble, Bath, Trash2, Edit, AlertTriangle, Download, Eye, FileText } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ImageLightbox } from '@/components/ImageLightbox';
+import { MediaCarousel } from '@/components/MediaCarousel';
 
 interface UserProperty {
   id: string;
@@ -23,10 +24,18 @@ interface UserProperty {
   description: string | null;
   amenities: string[] | null;
   images: string[];
+  document_paths: string[] | null;
   status: string | null;
   validation_status: string | null;
   rejection_reason: string | null;
   created_at: string;
+}
+
+interface DocumentLink {
+  name: string;
+  previewUrl: string | null;
+  downloadUrl: string | null;
+  isImage: boolean;
 }
 
 const statusLabelMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -45,11 +54,16 @@ export default function UserPropertyDetails() {
   const [deleting, setDeleting] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [documents, setDocuments] = useState<DocumentLink[]>([]);
+  const [docsLightboxOpen, setDocsLightboxOpen] = useState(false);
+  const [docsLightboxIndex, setDocsLightboxIndex] = useState(0);
 
   const resolveImageUrl = (pathOrUrl: string) =>
     pathOrUrl.startsWith('http')
       ? pathOrUrl
       : supabase.storage.from('property-images').getPublicUrl(pathOrUrl).data.publicUrl;
+
+  const isImagePath = (path: string) => /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(path);
 
   const fetchProperty = useCallback(async () => {
     if (!id || !user) return;
@@ -58,7 +72,7 @@ export default function UserPropertyDetails() {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, owner_id, title, address, campus, price, rooms, bathrooms, description, amenities, images, status, validation_status, rejection_reason, created_at')
+        .select('id, owner_id, title, address, campus, price, rooms, bathrooms, description, amenities, images, document_paths, status, validation_status, rejection_reason, created_at')
         .eq('id', id)
         .eq('owner_id', user.id)
         .single();
@@ -70,6 +84,30 @@ export default function UserPropertyDetails() {
         price: Number(data.price),
         images: ((data.images as string[] | null) ?? []).map(resolveImageUrl),
       });
+
+      if (data.document_paths && data.document_paths.length > 0) {
+        const docs = await Promise.all(
+          data.document_paths.map(async (path: string, index: number) => {
+            const fileName = path.split('/').pop() || `Documento ${index + 1}`;
+
+            const [previewSigned, downloadSigned] = await Promise.all([
+              supabase.storage.from('property-documents').createSignedUrl(path, 60 * 60),
+              supabase.storage.from('property-documents').createSignedUrl(path, 60 * 60, { download: true }),
+            ]);
+
+            return {
+              name: fileName,
+              previewUrl: previewSigned.data?.signedUrl ?? null,
+              downloadUrl: downloadSigned.data?.signedUrl ?? null,
+              isImage: isImagePath(path),
+            };
+          }),
+        );
+
+        setDocuments(docs);
+      } else {
+        setDocuments([]);
+      }
     } catch (error) {
       console.error(error);
       toast.error('Não foi possível carregar o anúncio.');
@@ -118,6 +156,7 @@ export default function UserPropertyDetails() {
   const isApproved = status === 'approved';
   const isRejected = status === 'rejected';
   const requestedAt = new Date(property.created_at).toLocaleDateString('pt-BR');
+  const documentImageUrls = documents.filter((doc) => doc.isImage && doc.previewUrl).map((doc) => doc.previewUrl as string);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-8 p-4">
@@ -186,23 +225,65 @@ export default function UserPropertyDetails() {
             <CardTitle className="text-lg">Fotos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {property.images.map((image, index) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`Foto ${index + 1}`}
-                  className="w-full h-40 object-cover rounded-lg border cursor-zoom-in"
-                  onClick={() => {
-                    setLightboxIndex(index);
-                    setLightboxOpen(true);
-                  }}
-                />
-              ))}
-            </div>
+            <MediaCarousel
+              items={property.images.map((url, index) => ({ url, alt: `Foto ${index + 1}` }))}
+              onItemClick={(index) => {
+                setLightboxIndex(index);
+                setLightboxOpen(true);
+              }}
+            />
           </CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="h-5 w-5" /> Documentação enviada
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum documento enviado.</p>
+          ) : (
+            <div className="space-y-4">
+              {documentImageUrls.length > 0 && (
+                <MediaCarousel
+                  items={documentImageUrls.map((url, index) => ({ url, alt: `Documento ${index + 1}` }))}
+                  onItemClick={(index) => {
+                    setDocsLightboxIndex(index);
+                    setDocsLightboxOpen(true);
+                  }}
+                />
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {documents.map((doc, index) => (
+                  <div key={index} className="flex items-center justify-between gap-2 rounded-lg border p-2.5">
+                    <p className="text-xs sm:text-sm font-medium truncate">{doc.name}</p>
+                    <div className="flex gap-1 shrink-0">
+                      {doc.previewUrl && !doc.isImage && (
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={doc.previewUrl} target="_blank" rel="noreferrer">
+                            <Eye className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      {doc.downloadUrl && (
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={doc.downloadUrl} download title="Baixar Arquivo Original">
+                            <Download className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex flex-wrap gap-2">
         {isApproved && (
@@ -247,6 +328,13 @@ export default function UserPropertyDetails() {
         images={property.images}
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
+      />
+
+      <ImageLightbox
+        open={docsLightboxOpen}
+        images={documentImageUrls}
+        initialIndex={docsLightboxIndex}
+        onClose={() => setDocsLightboxOpen(false)}
       />
     </div>
   );
