@@ -122,6 +122,7 @@ export default function AdminDashboard() {
                 <div className="text-sm text-muted-foreground flex flex-wrap gap-x-5 gap-y-1">
                   <span>Campus: {property.campus ?? 'Não informado'}</span>
                   <span>Preço: R$ {property.price.toFixed(2)}</span>
+                  <span>Solicitado em: {new Date(property.created_at).toLocaleDateString('pt-BR')}</span>
                 </div>
 
                 <Button asChild variant="outline" size="sm" className="w-full">

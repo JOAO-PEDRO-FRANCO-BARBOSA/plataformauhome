@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export interface ProfileData {
   id: string;
   full_name: string;
+  age: number;
+  college_period: string;
   avatar_url: string;
   match_photo_url: string;
   course: string;
@@ -20,6 +22,8 @@ export interface ProfileData {
 const defaultProfile: ProfileData = {
   id: '',
   full_name: '',
+  age: 18,
+  college_period: '',
   avatar_url: '',
   match_photo_url: '',
   course: '',
@@ -47,6 +51,8 @@ export function useProfile() {
         setProfile({
           id: data.id,
           full_name: data.full_name ?? '',
+          age: data.age ?? 18,
+          college_period: data.college_period ?? '',
           avatar_url: data.avatar_url ?? '',
           match_photo_url: data.match_photo_url ?? '',
           course: data.course ?? '',
@@ -85,6 +91,8 @@ export function useProfile() {
       // We need to get the latest profile state to build dbUpdates
       // Use the updates directly since they're what changed
       if (updates.full_name !== undefined) dbUpdates.full_name = updates.full_name;
+      if (updates.age !== undefined) dbUpdates.age = updates.age;
+      if (updates.college_period !== undefined) dbUpdates.college_period = updates.college_period;
       if (updates.avatar_url !== undefined) dbUpdates.avatar_url = updates.avatar_url;
       if (updates.match_photo_url !== undefined) dbUpdates.match_photo_url = updates.match_photo_url;
       if (updates.course !== undefined) dbUpdates.course = updates.course;

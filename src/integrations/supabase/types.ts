@@ -123,9 +123,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
           bio: string | null
           campus: string | null
+          college_period: string | null
           course: string | null
           created_at: string
           full_name: string | null
@@ -139,9 +141,11 @@ export type Database = {
           semester: number | null
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
           bio?: string | null
           campus?: string | null
+          college_period?: string | null
           course?: string | null
           created_at?: string
           full_name?: string | null
@@ -155,9 +159,11 @@ export type Database = {
           semester?: number | null
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
           bio?: string | null
           campus?: string | null
+          college_period?: string | null
           course?: string | null
           created_at?: string
           full_name?: string | null
@@ -185,6 +191,8 @@ export type Database = {
           id: string
           images: string[] | null
           no_fiador: boolean | null
+          owner_cpf_cnpj: string | null
+          owner_email: string | null
           owner_id: string
           price: number
           rejection_reason: string | null
@@ -206,6 +214,8 @@ export type Database = {
           id?: string
           images?: string[] | null
           no_fiador?: boolean | null
+          owner_cpf_cnpj?: string | null
+          owner_email?: string | null
           owner_id: string
           price: number
           rejection_reason?: string | null
@@ -227,6 +237,8 @@ export type Database = {
           id?: string
           images?: string[] | null
           no_fiador?: boolean | null
+          owner_cpf_cnpj?: string | null
+          owner_email?: string | null
           owner_id?: string
           price?: number
           rejection_reason?: string | null

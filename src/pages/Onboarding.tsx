@@ -24,6 +24,8 @@ export default function Onboarding() {
   const [data, setData] = useState({
     full_name: '',
     course: '',
+    age: 18,
+    college_period: '',
     smokes: false,
     likesParties: false,
     hasPet: false,
@@ -99,6 +101,8 @@ export default function Onboarding() {
       const profileUpdates: Record<string, any> = {
         full_name: data.full_name,
         course: data.course,
+        age: data.age,
+        college_period: data.college_period,
         campus: data.campus,
         search_type: data.searchType,
         price_range_min: data.priceRange[0],
@@ -200,6 +204,27 @@ export default function Onboarding() {
                 <div>
                   <Label>Curso na UFU</Label>
                   <Input value={data.course} onChange={(e) => setData({ ...data, course: e.target.value })} placeholder="Ex: Engenharia Elétrica" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Idade</Label>
+                    <Input
+                      type="number"
+                      min={16}
+                      max={99}
+                      value={data.age}
+                      onChange={(e) => setData({ ...data, age: Number(e.target.value) || 18 })}
+                      placeholder="Ex: 21"
+                    />
+                  </div>
+                  <div>
+                    <Label>Período</Label>
+                    <Input
+                      value={data.college_period}
+                      onChange={(e) => setData({ ...data, college_period: e.target.value })}
+                      placeholder="Ex: 5º"
+                    />
+                  </div>
                 </div>
               </>
             )}

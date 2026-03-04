@@ -125,6 +125,26 @@ export default function Profile() {
                     <Label>Curso na UFU</Label>
                     <Input value={profile.course} onChange={(e) => updateProfile({ course: e.target.value })} />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Idade</Label>
+                      <Input
+                        type="number"
+                        min={16}
+                        max={99}
+                        value={profile.age}
+                        onChange={(e) => updateProfile({ age: Number(e.target.value) || 18 })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Período da faculdade</Label>
+                      <Input
+                        value={profile.college_period}
+                        onChange={(e) => updateProfile({ college_period: e.target.value })}
+                        placeholder="Ex: 5º período"
+                      />
+                    </div>
+                  </div>
                   <div>
                     <Label>Campus</Label>
                     <Select value={profile.campus} onValueChange={(v) => updateProfile({ campus: v })}>

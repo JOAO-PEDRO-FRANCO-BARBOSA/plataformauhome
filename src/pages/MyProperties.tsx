@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Trash2, Edit, Loader2, Home, Plus, AlertTriangle } from 'lucide-react';
+import { Trash2, Edit, Loader2, Home, Plus, AlertTriangle, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Property {
@@ -143,6 +143,15 @@ export default function MyProperties() {
                       {prop.campus && <span>• {prop.campus}</span>}
                     </div>
                     <p className="text-xs text-muted-foreground">Solicitado em: {requestedAt}</p>
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5 w-fit"
+                      onClick={() => navigate(`/my-properties/${prop.id}`)}
+                    >
+                      <Eye className="h-3.5 w-3.5" /> Ver Anúncio
+                    </Button>
 
                     {isRejected && (
                       <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-start gap-2">

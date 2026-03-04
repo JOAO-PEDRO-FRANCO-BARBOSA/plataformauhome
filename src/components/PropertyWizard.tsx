@@ -29,6 +29,8 @@ interface WizardData {
   noFiador: boolean;
   verified: boolean;
   price: string;
+  ownerCpfCnpj: string;
+  ownerEmail: string;
   acceptsPet: boolean;
   description: string;
 }
@@ -36,7 +38,7 @@ interface WizardData {
 const initialData: WizardData = {
   address: '', campus: '', title: '', rooms: 1, bathrooms: 1,
   amenities: [], photos: [], docs: [], noFiador: false, verified: false,
-  price: '', acceptsPet: false, description: '',
+  price: '', ownerCpfCnpj: '', ownerEmail: '', acceptsPet: false, description: '',
 };
 
 const STEPS = ['Localização', 'Características', 'Documentação', 'Fotos'];
@@ -57,6 +59,8 @@ function validateStep(step: number, data: WizardData): string | null {
     case 2:
       if (data.docs.length < 1) return 'Envie ao menos 1 documento (contrato/comprovante)';
       if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
+      if (!data.ownerCpfCnpj.trim()) return 'Informe CPF/CNPJ do proprietário';
+      if (!data.ownerEmail.trim()) return 'Informe o e-mail do proprietário';
       return null;
     case 3:
       if (data.photos.length < 1) return 'Envie ao menos 1 foto do imóvel';
@@ -73,6 +77,8 @@ function validateStepForEdit(step: number, data: WizardData): string | null {
       return validateStep(step, data);
     case 2:
       if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
+      if (!data.ownerCpfCnpj.trim()) return 'Informe CPF/CNPJ do proprietário';
+      if (!data.ownerEmail.trim()) return 'Informe o e-mail do proprietário';
       return null;
     case 3:
       return null;
@@ -116,7 +122,7 @@ export function PropertyWizard() {
       try {
         const { data: existingProperty, error } = await supabase
           .from('properties')
-          .select('id, owner_id, title, address, campus, rooms, bathrooms, amenities, images, document_paths, no_fiador, price, accepts_pet, description')
+          .select('id, owner_id, title, address, campus, rooms, bathrooms, amenities, images, document_paths, no_fiador, price, owner_cpf_cnpj, owner_email, accepts_pet, description')
           .eq('id', editId)
           .eq('owner_id', user.id)
           .single();
@@ -133,6 +139,8 @@ export function PropertyWizard() {
           amenities: existingProperty.amenities ?? [],
           noFiador: existingProperty.no_fiador ?? false,
           price: String(existingProperty.price ?? ''),
+          ownerCpfCnpj: existingProperty.owner_cpf_cnpj ?? '',
+          ownerEmail: existingProperty.owner_email ?? '',
           acceptsPet: existingProperty.accepts_pet ?? false,
           description: existingProperty.description ?? '',
         }));
@@ -194,6 +202,8 @@ export function PropertyWizard() {
             images: imageUrls,
             no_fiador: data.noFiador,
             price: Number(data.price),
+            owner_cpf_cnpj: data.ownerCpfCnpj,
+            owner_email: data.ownerEmail,
             document_paths: documentPaths,
             accepts_pet: data.acceptsPet,
             description: data.description,
@@ -218,6 +228,8 @@ export function PropertyWizard() {
           no_fiador: data.noFiador,
           verified: false,
           price: Number(data.price),
+          owner_cpf_cnpj: data.ownerCpfCnpj,
+          owner_email: data.ownerEmail,
           document_paths: documentPaths,
           accepts_pet: data.acceptsPet,
           description: data.description,
@@ -344,6 +356,27 @@ export function PropertyWizard() {
             <div className="space-y-2">
               <Label htmlFor="price">Preço mensal (R$) *</Label>
               <Input id="price" type="number" placeholder="850" value={data.price} onChange={(e) => setData({ ...data, price: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="ownerCpfCnpj">CPF/CNPJ do proprietário *</Label>
+                <Input
+                  id="ownerCpfCnpj"
+                  placeholder="Ex: 123.456.789-00"
+                  value={data.ownerCpfCnpj}
+                  onChange={(e) => setData({ ...data, ownerCpfCnpj: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ownerEmail">E-mail do proprietário *</Label>
+                <Input
+                  id="ownerEmail"
+                  type="email"
+                  placeholder="Ex: proprietario@email.com"
+                  value={data.ownerEmail}
+                  onChange={(e) => setData({ ...data, ownerEmail: e.target.value })}
+                />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Label>Sem fiador</Label>

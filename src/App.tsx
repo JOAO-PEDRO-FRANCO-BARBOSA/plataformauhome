@@ -20,6 +20,7 @@ import HostDashboard from "@/pages/HostDashboard";
 import MyProperties from "@/pages/MyProperties";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminPropertyReview from "@/pages/AdminPropertyReview";
+import UserPropertyDetails from "@/pages/UserPropertyDetails";
 import NotFound from "./pages/NotFound";
 import { PropertyWizard } from "@/components/PropertyWizard";
 
@@ -65,6 +66,7 @@ const App = () => (
               <Route path="/host/new" element={<PropertyWizard />} />
               <Route path="/host/edit/:id" element={<PropertyWizard />} />
               <Route path="/my-properties" element={<MyProperties />} />
+              <Route path="/my-properties/:id" element={<UserPropertyDetails />} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/admin/properties/:id" element={<AdminRoute><AdminPropertyReview /></AdminRoute>} />
             </Route>

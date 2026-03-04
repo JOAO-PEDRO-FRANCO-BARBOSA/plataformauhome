@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,43 +22,46 @@ interface PropertyDetail {
   amenities: string[] | null;
   accepts_pet: boolean | null;
   no_fiador: boolean | null;
-  images: string[] | null;
+  images: string[];
   document_paths: string[] | null;
   rejection_reason: string | null;
   status: string;
   created_at: string;
 }
 
-interface PropertyViewModel extends Omit<PropertyDetail, 'images'> {
-  images: string[];
-}
-
 interface DocumentLink {
   name: string;
   path: string;
-  signedUrl: string | null;
+  previewUrl: string | null;
+  downloadUrl: string | null;
+  isImage: boolean;
 }
 
 export default function AdminPropertyReview() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [property, setProperty] = useState<PropertyViewModel | null>(null);
+  const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<DocumentLink[]>([]);
   const [updating, setUpdating] = useState<'approved' | 'rejected' | null>(null);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [docsIndex, setDocsIndex] = useState(0);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const resolveImageUrl = (img: string) =>
-    img.startsWith('http')
-      ? img
-      : supabase.storage.from('property-images').getPublicUrl(img).data.publicUrl;
+  const resolveImageUrl = (pathOrUrl: string) =>
+    pathOrUrl.startsWith('http')
+      ? pathOrUrl
+      : supabase.storage.from('property-images').getPublicUrl(pathOrUrl).data.publicUrl;
+
+  const isImagePath = (path: string) => /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(path);
 
   const fetchProperty = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from('properties')
@@ -67,6 +70,7 @@ export default function AdminPropertyReview() {
         .single();
 
       if (error) throw error;
+
       const imageUrls = ((data.images as string[] | null) ?? []).map(resolveImageUrl);
 
       setProperty({
@@ -75,21 +79,32 @@ export default function AdminPropertyReview() {
         images: imageUrls,
       });
 
-      // Resolve document signed URLs
       if (data.document_paths && data.document_paths.length > 0) {
         const docs = await Promise.all(
           data.document_paths.map(async (path: string, index: number) => {
             const fileName = path.split('/').pop() || `Documento ${index + 1}`;
-            const { data: signed } = await supabase.storage
-              .from('property-documents')
-              .createSignedUrl(path, 60 * 60, { download: true });
-            return { name: fileName, path, signedUrl: signed?.signedUrl ?? null };
-          })
+
+            const [previewSigned, downloadSigned] = await Promise.all([
+              supabase.storage.from('property-documents').createSignedUrl(path, 60 * 60),
+              supabase.storage.from('property-documents').createSignedUrl(path, 60 * 60, { download: true }),
+            ]);
+
+            return {
+              name: fileName,
+              path,
+              previewUrl: previewSigned.data?.signedUrl ?? null,
+              downloadUrl: downloadSigned.data?.signedUrl ?? null,
+              isImage: isImagePath(path),
+            };
+          }),
         );
+
         setDocuments(docs);
+      } else {
+        setDocuments([]);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       toast.error('Não foi possível carregar os detalhes do imóvel.');
     } finally {
       setLoading(false);
@@ -100,8 +115,14 @@ export default function AdminPropertyReview() {
     fetchProperty();
   }, [fetchProperty]);
 
+  const documentImageUrls = useMemo(
+    () => documents.filter((doc) => doc.isImage && doc.previewUrl).map((doc) => doc.previewUrl as string),
+    [documents],
+  );
+
   const handleUpdateStatus = async (nextStatus: 'approved' | 'rejected', reason?: string) => {
     if (!id) return;
+
     setUpdating(nextStatus);
     try {
       const payload = nextStatus === 'rejected'
@@ -114,10 +135,11 @@ export default function AdminPropertyReview() {
         .eq('id', id);
 
       if (error) throw error;
+
       toast.success(nextStatus === 'approved' ? 'Imóvel aprovado com sucesso!' : 'Imóvel rejeitado.');
       navigate('/admin');
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       toast.error('Erro ao atualizar o status do imóvel.');
     } finally {
       setUpdating(null);
@@ -151,7 +173,6 @@ export default function AdminPropertyReview() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-28 p-4">
-      {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
           <ArrowLeft className="mr-1 h-4 w-4" /> Voltar
@@ -162,7 +183,6 @@ export default function AdminPropertyReview() {
       <h1 className="text-2xl font-bold tracking-tight">{property.title}</h1>
       <p className="text-sm text-muted-foreground">Solicitado em: {requestedAt}</p>
 
-      {/* General Info */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Informações Gerais</CardTitle>
@@ -191,7 +211,6 @@ export default function AdminPropertyReview() {
             </div>
           </div>
 
-          {/* Flags */}
           <div className="flex flex-wrap gap-2">
             {property.accepts_pet && (
               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">
@@ -205,7 +224,6 @@ export default function AdminPropertyReview() {
             )}
           </div>
 
-          {/* Description */}
           {property.description && (
             <div>
               <p className="text-sm font-medium mb-1">Descrição</p>
@@ -226,7 +244,6 @@ export default function AdminPropertyReview() {
         </Card>
       )}
 
-      {/* Amenities */}
       {property.amenities && property.amenities.length > 0 && (
         <Card>
           <CardHeader>
@@ -234,15 +251,14 @@ export default function AdminPropertyReview() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {property.amenities.map((a) => (
-                <Badge key={a} variant="outline">{a}</Badge>
+              {property.amenities.map((amenity) => (
+                <Badge key={amenity} variant="outline">{amenity}</Badge>
               ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Photo Gallery */}
       {property.images.length > 0 && (
         <Card>
           <CardHeader>
@@ -250,16 +266,16 @@ export default function AdminPropertyReview() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {property.images.map((img, i) => (
+              {property.images.map((img, index) => (
                 <img
-                  key={i}
+                  key={index}
                   src={img}
-                  alt={`Foto ${i + 1} - ${property.title}`}
+                  alt={`Foto ${index + 1} - ${property.title}`}
                   className="w-full h-40 object-cover rounded-lg border cursor-zoom-in"
                   loading="lazy"
                   onClick={() => {
-                    setLightboxIndex(i);
-                    setLightboxOpen(true);
+                    setGalleryIndex(index);
+                    setGalleryOpen(true);
                   }}
                 />
               ))}
@@ -268,7 +284,6 @@ export default function AdminPropertyReview() {
         </Card>
       )}
 
-      {/* Documents */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -280,24 +295,40 @@ export default function AdminPropertyReview() {
             <p className="text-sm text-muted-foreground">Nenhum documento enviado.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {documents.map((doc, i) => (
-                <div key={i} className="flex items-center justify-between gap-2 rounded-lg border p-3">
+              {documents.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between gap-2 rounded-lg border p-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{doc.name}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    {doc.signedUrl ? (
+                    {doc.previewUrl ? (
                       <>
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={doc.signedUrl} target="_blank" rel="noreferrer">
+                        {doc.isImage ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const lightboxDocIndex = documentImageUrls.findIndex((url) => url === doc.previewUrl);
+                              setDocsIndex(lightboxDocIndex < 0 ? 0 : lightboxDocIndex);
+                              setDocsOpen(true);
+                            }}
+                          >
                             <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                          </a>
-                        </Button>
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={doc.signedUrl} download>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Baixar
-                          </a>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={doc.previewUrl} target="_blank" rel="noreferrer">
+                              <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                            </a>
+                          </Button>
+                        )}
+                        {doc.downloadUrl && (
+                          <Button size="sm" variant="outline" asChild>
+                            <a href={doc.downloadUrl} download>
+                              <Download className="h-3.5 w-3.5 mr-1" /> Baixar
+                            </a>
+                          </Button>
+                        )}
                       </>
                     ) : (
                       <span className="text-xs text-muted-foreground">Indisponível</span>
@@ -310,7 +341,6 @@ export default function AdminPropertyReview() {
         </CardContent>
       </Card>
 
-      {/* Sticky Footer Actions */}
       {property.status === 'pending' && (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 z-50">
           <div className="max-w-4xl mx-auto grid grid-cols-2 gap-3">
@@ -371,10 +401,17 @@ export default function AdminPropertyReview() {
       </Dialog>
 
       <ImageLightbox
-        open={lightboxOpen}
+        open={galleryOpen}
         images={property.images}
-        initialIndex={lightboxIndex}
-        onClose={() => setLightboxOpen(false)}
+        initialIndex={galleryIndex}
+        onClose={() => setGalleryOpen(false)}
+      />
+
+      <ImageLightbox
+        open={docsOpen}
+        images={documentImageUrls}
+        initialIndex={docsIndex}
+        onClose={() => setDocsOpen(false)}
       />
     </div>
   );
