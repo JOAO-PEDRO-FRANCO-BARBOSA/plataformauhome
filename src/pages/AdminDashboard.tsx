@@ -34,35 +34,27 @@ export default function AdminDashboard() {
 
       if (error) throw error;
 
-      const pendingRows = data ?? [];
-      const propertiesWithDocs = await Promise.all(
-        pendingRows.map(async (item) => {
-          const docs = await resolveDocumentLinks(item.document_paths);
-          const firstImage = item.images?.[0] ?? null;
-          const thumbnailUrl = firstImage
-            ? (firstImage.startsWith('http')
-              ? firstImage
-              : supabase.storage.from('property-images').getPublicUrl(firstImage).data.publicUrl)
-            : null;
+      const propertiesWithThumbs = (data ?? []).map((item) => {
+        const firstImage = item.images?.[0] ?? null;
+        const thumbnailUrl = firstImage
+          ? (firstImage.startsWith('http')
+            ? firstImage
+            : supabase.storage.from('property-images').getPublicUrl(firstImage).data.publicUrl)
+          : null;
 
-          return {
-            id: item.id,
-            title: item.title,
-            address: item.address,
-            campus: item.campus,
-            price: Number(item.price),
-            images: item.images,
-            thumbnailUrl,
-            document_paths: item.document_paths,
-            created_at: item.created_at,
-            status: item.status,
-            iptuUrl: docs.iptuUrl,
-            identidadeUrl: docs.identidadeUrl,
-          };
-        }),
-      );
+        return {
+          id: item.id,
+          title: item.title,
+          address: item.address,
+          campus: item.campus,
+          price: Number(item.price),
+          thumbnailUrl,
+          created_at: item.created_at,
+          status: item.status,
+        };
+      });
 
-      setProperties(propertiesWithDocs);
+      setProperties(propertiesWithThumbs);
     } catch (error) {
       console.error(error);
       toast.error('Não foi possível carregar os imóveis pendentes.');
