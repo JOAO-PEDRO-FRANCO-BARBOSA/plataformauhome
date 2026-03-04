@@ -67,25 +67,7 @@ export default function AdminDashboard() {
     fetchPendingProperties();
   }, [fetchPendingProperties]);
 
-  const handleUpdateStatus = async (propertyId: string, nextStatus: 'approved' | 'rejected') => {
-    setUpdating((prev) => ({ ...prev, [propertyId]: nextStatus }));
-    try {
-      const { error } = await supabase
-        .from('properties')
-        .update({ status: nextStatus, validation_status: nextStatus })
-        .eq('id', propertyId);
 
-      if (error) throw error;
-
-      setProperties((prev) => prev.filter((property) => property.id !== propertyId));
-      toast.success(nextStatus === 'approved' ? 'Imóvel aprovado com sucesso.' : 'Imóvel rejeitado.');
-    } catch (error) {
-      console.error(error);
-      toast.error('Não foi possível atualizar o status do imóvel.');
-    } finally {
-      setUpdating((prev) => ({ ...prev, [propertyId]: null }));
-    }
-  };
 
   if (loading) {
     return (
