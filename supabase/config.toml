@@ -2,3 +2,6 @@ project_id = "qvhrqfqlcnjbylpopkkn"
 
 [functions.delete-account]
 verify_jwt = false
+
+[functions.notify-property-status]
+verify_jwt = false

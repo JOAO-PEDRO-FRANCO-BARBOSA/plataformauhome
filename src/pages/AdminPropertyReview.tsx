@@ -26,6 +26,10 @@ interface PropertyDetail {
   created_at: string;
 }
 
+interface PropertyViewModel extends Omit<PropertyDetail, 'images'> {
+  images: string[];
+}
+
 interface DocumentLink {
   name: string;
   path: string;
@@ -35,15 +39,15 @@ interface DocumentLink {
 export default function AdminPropertyReview() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [property, setProperty] = useState<PropertyDetail | null>(null);
+  const [property, setProperty] = useState<PropertyViewModel | null>(null);
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<DocumentLink[]>([]);
   const [updating, setUpdating] = useState<'approved' | 'rejected' | null>(null);
 
-  const resolveImageUrl = (img: string) => {
-    if (img.startsWith('http')) return img;
-    return supabase.storage.from('property-images').getPublicUrl(img).data.publicUrl;
-  };
+  const resolveImageUrl = (img: string) =>
+    img.startsWith('http')
+      ? img
+      : supabase.storage.from('property-images').getPublicUrl(img).data.publicUrl;
 
   const fetchProperty = useCallback(async () => {
     if (!id) return;
@@ -56,9 +60,12 @@ export default function AdminPropertyReview() {
         .single();
 
       if (error) throw error;
+      const imageUrls = ((data.images as string[] | null) ?? []).map(resolveImageUrl);
+
       setProperty({
         ...data,
         price: Number(data.price),
+        images: imageUrls,
       });
 
       // Resolve document signed URLs
@@ -68,7 +75,7 @@ export default function AdminPropertyReview() {
             const fileName = path.split('/').pop() || `Documento ${index + 1}`;
             const { data: signed } = await supabase.storage
               .from('property-documents')
-              .createSignedUrl(path, 60 * 60);
+              .createSignedUrl(path, 60 * 60, { download: true });
             return { name: fileName, path, signedUrl: signed?.signedUrl ?? null };
           })
         );
@@ -92,7 +99,7 @@ export default function AdminPropertyReview() {
     try {
       const { error } = await supabase
         .from('properties')
-        .update({ status: nextStatus, validation_status: nextStatus })
+        .update({ status: nextStatus })
         .eq('id', id);
 
       if (error) throw error;
@@ -212,7 +219,7 @@ export default function AdminPropertyReview() {
       )}
 
       {/* Photo Gallery */}
-      {property.images && property.images.length > 0 && (
+      {property.images.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Galeria de Fotos</CardTitle>
@@ -222,7 +229,7 @@ export default function AdminPropertyReview() {
               {property.images.map((img, i) => (
                 <img
                   key={i}
-                  src={resolveImageUrl(img)}
+                  src={img}
                   alt={`Foto ${i + 1} - ${property.title}`}
                   className="w-full h-40 object-cover rounded-lg border"
                   loading="lazy"
