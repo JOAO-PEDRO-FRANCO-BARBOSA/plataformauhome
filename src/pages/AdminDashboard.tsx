@@ -95,11 +95,7 @@ export default function AdminDashboard() {
           <CardContent className="p-6 text-sm text-muted-foreground">Nenhum imóvel pendente no momento.</CardContent>
         </Card>
       ) : (
-        properties.map((property) => {
-          const currentUpdate = updating[property.id];
-          const isUpdating = Boolean(currentUpdate);
-
-          return (
+        properties.map((property) => (
             <Card key={property.id}>
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between gap-3">
