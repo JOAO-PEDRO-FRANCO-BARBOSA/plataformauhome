@@ -129,6 +129,7 @@ export function PropertyWizard() {
         price: Number(data.price),
         accepts_pet: data.acceptsPet,
         description: data.description,
+        status: 'pending',
         validation_status: 'pending_docs',
       });
 

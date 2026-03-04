@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Home, Search, Users, User, Plus, MessageSquare, LogOut, Building2 } from 'lucide-react';
+import { Home, Search, Users, User, Plus, MessageSquare, LogOut, Building2, ShieldCheck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,8 +29,12 @@ const navItems = [
 ];
 
 function DesktopSidebar() {
+  const { profile } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
+  const sidebarItems = profile?.role === 'admin'
+    ? [...navItems, { title: 'Admin', url: '/admin', icon: ShieldCheck }]
+    : navItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -42,7 +46,7 @@ function DesktopSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {sidebarItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} end className="hover:bg-accent/50" activeClassName="bg-accent text-primary font-medium">

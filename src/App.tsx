@@ -18,6 +18,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import HostDashboard from "@/pages/HostDashboard";
 import MyProperties from "@/pages/MyProperties";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import { PropertyWizard } from "@/components/PropertyWizard";
 
@@ -27,6 +28,16 @@ function RootRedirect() {
   const { isLoggedIn, loading } = useAuth();
   if (loading) return null;
   return <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />;
+}
+
+function AdminRoute({ children }: { children: JSX.Element }) {
+  const { isLoggedIn, loading, profile } = useAuth();
+
+  if (loading) return null;
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (profile?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+
+  return children;
 }
 
 const App = () => (
@@ -52,6 +63,7 @@ const App = () => (
               <Route path="/host" element={<HostDashboard />} />
               <Route path="/host/new" element={<PropertyWizard />} />
               <Route path="/my-properties" element={<MyProperties />} />
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />

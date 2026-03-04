@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ContactModal } from '@/components/ContactModal';
+import { CheckoutModal } from '@/components/CheckoutModal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, MapPin, BedDouble, PawPrint,
   Wifi, Car, Dumbbell, Shield, Sofa, Trees, CookingPot, BookOpen,
@@ -27,25 +29,44 @@ export default function PropertyDetails() {
   const [loading, setLoading] = useState(true);
   const [imgIndex, setImgIndex] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    supabase.from('properties').select('*').eq('id', id).single().then(({ data }) => {
-      if (data) {
-        setProperty({
-          id: data.id, title: data.title,
-          images: (data.images as string[]) ?? [],
-          price: Number(data.price),
-          campus: (data.campus ?? 'Santa Mônica') as Property['campus'],
-          address: data.address ?? '', rooms: data.rooms ?? 1,
-          noFiador: data.no_fiador ?? false, verified: data.verified ?? false,
-          description: data.description ?? '',
-          amenities: (data.amenities as string[]) ?? [],
-          acceptsPet: data.accepts_pet ?? false,
-        });
+    const fetchProperty = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', id)
+          .eq('status', 'approved')
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setProperty({
+            id: data.id, title: data.title,
+            images: (data.images as string[]) ?? [],
+            price: Number(data.price),
+            campus: (data.campus ?? 'Santa Mônica') as Property['campus'],
+            address: data.address ?? '', rooms: data.rooms ?? 1,
+            noFiador: data.no_fiador ?? false, verified: data.verified ?? false,
+            description: data.description ?? '',
+            amenities: (data.amenities as string[]) ?? [],
+            acceptsPet: data.accepts_pet ?? false,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Imóvel indisponível ou ainda não aprovado.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+
+    fetchProperty();
   }, [id]);
 
   if (loading) return <div className="py-20 flex justify-center"><Skeleton className="h-96 w-full max-w-3xl" /></div>;
@@ -129,7 +150,8 @@ export default function PropertyDetails() {
                 <p className="text-sm text-muted-foreground">Valor mensal</p>
                 <p className="text-3xl font-bold text-primary">R$ {property.price}</p>
               </div>
-              <Button className="w-full" size="lg" onClick={() => setContactOpen(true)}>Tenho Interesse</Button>
+              <Button className="w-full" size="lg" onClick={() => setCheckoutOpen(true)}>Reservar</Button>
+              <Button variant="outline" className="w-full" size="lg" onClick={() => setContactOpen(true)}>Tenho Interesse</Button>
             </CardContent>
           </Card>
         </div>
@@ -139,9 +161,18 @@ export default function PropertyDetails() {
           <p className="text-xs text-muted-foreground">Valor mensal</p>
           <p className="text-xl font-bold text-primary">R$ {property.price}</p>
         </div>
-        <Button size="lg" onClick={() => setContactOpen(true)}>Tenho Interesse</Button>
+        <div className="flex gap-2">
+          <Button size="lg" onClick={() => setCheckoutOpen(true)}>Reservar</Button>
+          <Button size="lg" variant="outline" onClick={() => setContactOpen(true)}>Tenho Interesse</Button>
+        </div>
       </div>
       <ContactModal open={contactOpen} onOpenChange={setContactOpen} title={`Interesse: ${property.title}`} />
+      <CheckoutModal
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        propertyTitle={property.title}
+        price={property.price}
+      />
     </div>
   );
 }
