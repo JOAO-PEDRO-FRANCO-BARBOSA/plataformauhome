@@ -7,38 +7,28 @@ serve(async (req) => {
     const payload = await req.json();
     const { record, old_record } = payload;
 
-    // Se o status não mudou, encerra a função
-    if (record.status === old_record.status) {
+    // Trava de segurança: se o status não mudou, ele avisa no log e para.
+    if (!old_record || record.status === old_record.status) {
+      console.log("Status não mudou. Ignorando envio.");
       return new Response("Status inalterado", { status: 200 });
     }
 
-    // AQUI ENTRARIA A BUSCA PELO EMAIL REAL DO USUÁRIO. 
-    // Para testarmos agora, coloque O SEU E-MAIL PESSOAL ABAIXO:
-    const ownerEmail = "francojoao512@gmail.com"; 
+    const ownerEmail = "francojoao512@gmail.com"; // Seu e-mail de teste
 
     let subject = "";
     let htmlTemplate = "";
 
     if (record.status === "approved") {
       subject = "🎉 Seu imóvel foi aprovado no UHOME!";
-      htmlTemplate = `
-        <h2>Excelente notícia!</h2>
-        <p>O seu anúncio para <strong>${record.title}</strong> foi revisado e já está online na plataforma.</p>
-        <p>Os estudantes já podem visualizar e entrar em contato.</p>
-      `;
+      htmlTemplate = `<h2>Excelente notícia!</h2><p>O seu anúncio para <strong>${record.title}</strong> foi aprovado.</p>`;
     } else if (record.status === "rejected") {
       subject = "⚠️ Ajustes necessários no seu anúncio do UHOME";
-      htmlTemplate = `
-        <h2>Olá, precisamos de alguns ajustes.</h2>
-        <p>O seu anúncio para <strong>${record.title}</strong> foi revisado, mas encontramos um problema:</p>
-        <div style="padding: 12px; border-left: 4px solid red; background: #ffe6e6;">
-          <strong>Motivo:</strong> ${record.rejection_reason || "Não especificado."}
-        </div>
-        <p>Por favor, acesse a plataforma, exclua o anúncio pendente e crie um novo com as informações corrigidas.</p>
-      `;
+      htmlTemplate = `<h2>Olá, precisamos de alguns ajustes.</h2><p>Motivo: ${record.rejection_reason || "Não especificado"}</p>`;
     } else {
-       return new Response("Status ignorado", { status: 200 });
+      return new Response("Status ignorado", { status: 200 });
     }
+
+    console.log(`Tentando enviar e-mail para ${ownerEmail}...`);
 
     // Dispara o e-mail via Resend
     const res = await fetch("https://api.resend.com/emails", {
@@ -48,17 +38,26 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "UHOME <onboarding@resend.dev>", 
+        from: "onboarding@resend.dev", // Remetente obrigatório para contas gratuitas
         to: ownerEmail,
         subject: subject,
         html: htmlTemplate,
       }),
     });
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    // LÊ A RESPOSTA EXATA DO RESEND
+    const resData = await res.json();
+
+    if (!res.ok) {
+      console.error("❌ O RESEND RECUSOU O ENVIO:", resData);
+      return new Response(JSON.stringify({ error: resData }), { status: 400 });
+    }
+
+    console.log("✅ E-MAIL ACEITO PELO RESEND:", resData);
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+
   } catch (error) {
+    console.error("❌ ERRO INTERNO:", error.message);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 });
