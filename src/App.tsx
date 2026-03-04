@@ -19,6 +19,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import HostDashboard from "@/pages/HostDashboard";
 import MyProperties from "@/pages/MyProperties";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminPropertyReview from "@/pages/AdminPropertyReview";
 import NotFound from "./pages/NotFound";
 import { PropertyWizard } from "@/components/PropertyWizard";
 
