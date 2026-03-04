@@ -65,6 +65,7 @@ const App = () => (
               <Route path="/host/new" element={<PropertyWizard />} />
               <Route path="/my-properties" element={<MyProperties />} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/admin/properties/:id" element={<AdminRoute><AdminPropertyReview /></AdminRoute>} />
             </Route>
             <Route path="/" element={<RootRedirect />} />
             <Route path="*" element={<NotFound />} />

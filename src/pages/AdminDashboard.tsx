@@ -195,53 +195,11 @@ export default function AdminDashboard() {
                 <div className="text-sm text-muted-foreground flex flex-wrap gap-x-5 gap-y-1">
                   <span>Campus: {property.campus ?? 'Não informado'}</span>
                   <span>Preço: R$ {property.price.toFixed(2)}</span>
-                  <Link to={`/marketplace/${property.id}`} className="text-primary hover:underline">
-                    Ver anúncio
-                  </Link>
                 </div>
 
-                <div className="rounded-lg border p-3 text-sm space-y-1">
-                  <p className="font-medium">Documentos</p>
-                  <p>
-                    IPTU:{' '}
-                    {property.iptuUrl ? (
-                      <a href={property.iptuUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                        Abrir documento
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">Não enviado</span>
-                    )}
-                  </p>
-                  <p>
-                    Identidade:{' '}
-                    {property.identidadeUrl ? (
-                      <a href={property.identidadeUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
-                        Abrir documento
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">Não enviado</span>
-                    )}
-                  </p>
-                  {property.document_paths && property.document_paths.length > 0 && (
-                    <p className="text-xs text-muted-foreground">Total de documentos enviados: {property.document_paths.length}</p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    disabled={isUpdating}
-                    onClick={() => handleUpdateStatus(property.id, 'approved')}
-                  >
-                    {currentUpdate === 'approved' ? 'Aprovando...' : 'Aprovar'}
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    disabled={isUpdating}
-                    onClick={() => handleUpdateStatus(property.id, 'rejected')}
-                  >
-                    {currentUpdate === 'rejected' ? 'Rejeitando...' : 'Rejeitar'}
-                  </Button>
-                </div>
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link to={`/admin/properties/${property.id}`}>Revisar</Link>
+                </Button>
               </CardContent>
             </Card>
           );
