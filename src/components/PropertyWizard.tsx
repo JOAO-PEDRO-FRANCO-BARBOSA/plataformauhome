@@ -110,9 +110,13 @@ export function PropertyWizard() {
       }
 
       // Upload docs to private bucket
+      const documentPaths: string[] = [];
       for (const doc of data.docs) {
         const path = `${user.id}/${Date.now()}-${doc.name}`;
-        await supabase.storage.from('property-documents').upload(path, doc);
+        const { error } = await supabase.storage.from('property-documents').upload(path, doc);
+        if (!error) {
+          documentPaths.push(path);
+        }
       }
 
       const { error } = await supabase.from('properties').insert({
@@ -127,6 +131,7 @@ export function PropertyWizard() {
         no_fiador: data.noFiador,
         verified: false,
         price: Number(data.price),
+        document_paths: documentPaths,
         accepts_pet: data.acceptsPet,
         description: data.description,
         status: 'pending',

@@ -180,6 +180,7 @@ export type Database = {
           bathrooms: number | null
           campus: string | null
           created_at: string
+          document_paths: string[] | null
           description: string | null
           id: string
           images: string[] | null
@@ -199,6 +200,7 @@ export type Database = {
           bathrooms?: number | null
           campus?: string | null
           created_at?: string
+          document_paths?: string[] | null
           description?: string | null
           id?: string
           images?: string[] | null
@@ -218,6 +220,7 @@ export type Database = {
           bathrooms?: number | null
           campus?: string | null
           created_at?: string
+          document_paths?: string[] | null
           description?: string | null
           id?: string
           images?: string[] | null

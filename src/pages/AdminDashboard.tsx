@@ -9,12 +9,13 @@ import { toast } from 'sonner';
 
 interface PendingProperty {
   id: string;
-  owner_id: string;
   title: string;
   address: string | null;
   campus: string | null;
   price: number;
   images: string[] | null;
+  thumbnailUrl: string | null;
+  document_paths: string[] | null;
   created_at: string;
   status: string;
   iptuUrl: string | null;
@@ -28,19 +29,24 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<UpdatingState>({});
 
-  const resolveDocumentLinks = useCallback(async (ownerId: string) => {
+  const resolveDocumentLinks = useCallback(async (paths: string[] | null) => {
     try {
-      const { data: files, error } = await supabase.storage
-        .from('property-documents')
-        .list(ownerId, { limit: 20, sortBy: { column: 'created_at', order: 'desc' } });
-
-      if (error || !files || files.length === 0) {
+      if (!paths || paths.length === 0) {
         return { iptuUrl: null, identidadeUrl: null };
       }
 
-      const [iptuFile, identidadeFile] = files;
-      const iptuPath = iptuFile ? `${ownerId}/${iptuFile.name}` : null;
-      const identidadePath = identidadeFile ? `${ownerId}/${identidadeFile.name}` : null;
+      const normalize = (value: string) => value.toLowerCase();
+
+      const iptuPath = paths.find((path) => normalize(path).includes('iptu')) ?? paths[0] ?? null;
+      const identidadePath = paths.find((path) => {
+        const lowerPath = normalize(path);
+        return (
+          lowerPath.includes('identidade') ||
+          lowerPath.includes('documento') ||
+          lowerPath.includes('rg') ||
+          lowerPath.includes('cpf')
+        );
+      }) ?? paths[1] ?? null;
 
       const [iptuSigned, identidadeSigned] = await Promise.all([
         iptuPath
@@ -65,7 +71,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, owner_id, title, address, campus, price, images, created_at, status')
+        .select('id, title, address, campus, price, images, document_paths, created_at, status')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -74,15 +80,23 @@ export default function AdminDashboard() {
       const pendingRows = data ?? [];
       const propertiesWithDocs = await Promise.all(
         pendingRows.map(async (item) => {
-          const docs = await resolveDocumentLinks(item.owner_id);
+          const docs = await resolveDocumentLinks(item.document_paths);
+          const firstImage = item.images?.[0] ?? null;
+          const thumbnailUrl = firstImage
+            ? (firstImage.startsWith('http')
+              ? firstImage
+              : supabase.storage.from('property-images').getPublicUrl(firstImage).data.publicUrl)
+            : null;
+
           return {
             id: item.id,
-            owner_id: item.owner_id,
             title: item.title,
             address: item.address,
             campus: item.campus,
             price: Number(item.price),
             images: item.images,
+            thumbnailUrl,
+            document_paths: item.document_paths,
             created_at: item.created_at,
             status: item.status,
             iptuUrl: docs.iptuUrl,
@@ -158,9 +172,22 @@ export default function AdminDashboard() {
             <Card key={property.id}>
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="font-semibold truncate">{property.title}</h2>
-                    <p className="text-sm text-muted-foreground truncate">{property.address ?? 'Endereço não informado'}</p>
+                  <div className="min-w-0 flex items-center gap-3">
+                    {property.thumbnailUrl ? (
+                      <img
+                        src={property.thumbnailUrl}
+                        alt={property.title}
+                        className="h-14 w-14 rounded-md object-cover border shrink-0"
+                      />
+                    ) : (
+                      <div className="h-14 w-14 rounded-md border bg-muted flex items-center justify-center text-[10px] text-muted-foreground shrink-0">
+                        Sem foto
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <h2 className="font-semibold truncate">{property.title}</h2>
+                      <p className="text-sm text-muted-foreground truncate">{property.address ?? 'Endereço não informado'}</p>
+                    </div>
                   </div>
                   <Badge variant="secondary">Pendente</Badge>
                 </div>
@@ -195,6 +222,9 @@ export default function AdminDashboard() {
                       <span className="text-muted-foreground">Não enviado</span>
                     )}
                   </p>
+                  {property.document_paths && property.document_paths.length > 0 && (
+                    <p className="text-xs text-muted-foreground">Total de documentos enviados: {property.document_paths.length}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
