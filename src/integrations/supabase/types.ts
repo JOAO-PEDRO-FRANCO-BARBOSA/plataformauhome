@@ -187,6 +187,7 @@ export type Database = {
           owner_id: string
           price: number
           rooms: number | null
+          status: string
           title: string
           validation_status: string | null
           verified: boolean | null
@@ -205,6 +206,7 @@ export type Database = {
           owner_id: string
           price: number
           rooms?: number | null
+          status?: string
           title: string
           validation_status?: string | null
           verified?: boolean | null
@@ -223,6 +225,7 @@ export type Database = {
           owner_id?: string
           price?: number
           rooms?: number | null
+          status?: string
           title?: string
           validation_status?: string | null
           verified?: boolean | null
