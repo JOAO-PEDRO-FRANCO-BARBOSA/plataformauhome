@@ -187,6 +187,7 @@ export type Database = {
           no_fiador: boolean | null
           owner_id: string
           price: number
+          rejection_reason: string | null
           rooms: number | null
           status: string
           title: string
@@ -207,6 +208,7 @@ export type Database = {
           no_fiador?: boolean | null
           owner_id: string
           price: number
+          rejection_reason?: string | null
           rooms?: number | null
           status?: string
           title: string
@@ -227,6 +229,7 @@ export type Database = {
           no_fiador?: boolean | null
           owner_id?: string
           price?: number
+          rejection_reason?: string | null
           rooms?: number | null
           status?: string
           title?: string

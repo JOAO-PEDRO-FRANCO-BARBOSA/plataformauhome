@@ -63,6 +63,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/host" element={<HostDashboard />} />
               <Route path="/host/new" element={<PropertyWizard />} />
+              <Route path="/host/edit/:id" element={<PropertyWizard />} />
               <Route path="/my-properties" element={<MyProperties />} />
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/admin/properties/:id" element={<AdminRoute><AdminPropertyReview /></AdminRoute>} />

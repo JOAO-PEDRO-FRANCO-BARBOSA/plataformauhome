@@ -15,6 +15,7 @@ interface Property {
   price: number;
   address: string | null;
   images: string[] | null;
+  status: string | null;
   validation_status: string | null;
   rooms: number | null;
   campus: string | null;
@@ -22,6 +23,7 @@ interface Property {
 }
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  pending: { label: 'Pendente', variant: 'secondary' },
   pending_docs: { label: 'Pendente', variant: 'secondary' },
   approved: { label: 'Aprovado', variant: 'default' },
   rejected: { label: 'Rejeitado', variant: 'destructive' },
@@ -38,7 +40,7 @@ export default function MyProperties() {
     if (!user) return;
     supabase
       .from('properties')
-      .select('id, title, price, address, images, validation_status, rooms, campus, created_at')
+      .select('id, title, price, address, images, status, validation_status, rooms, campus, created_at')
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
@@ -48,7 +50,12 @@ export default function MyProperties() {
       });
   }, [user]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, status: string | null) => {
+    if (status === 'pending') {
+      toast.error('Não é possível excluir um anúncio em análise.');
+      return;
+    }
+
     setDeleting(id);
     try {
       const { error } = await supabase.from('properties').delete().eq('id', id);
@@ -94,8 +101,12 @@ export default function MyProperties() {
 
       <div className="space-y-4">
         {properties.map((prop) => {
-          const status = statusLabels[prop.validation_status ?? 'pending_docs'] ?? statusLabels.pending_docs;
+          const propertyStatus = prop.status ?? prop.validation_status ?? 'pending';
+          const status = statusLabels[propertyStatus] ?? statusLabels.pending;
+          const isPending = propertyStatus === 'pending' || propertyStatus === 'pending_docs';
+          const canEditOrDelete = propertyStatus === 'approved';
           const thumb = prop.images?.[0] || '/placeholder.svg';
+          const requestedAt = new Date(prop.created_at).toLocaleDateString('pt-BR');
 
           return (
             <Card key={prop.id} className="overflow-hidden">
@@ -119,13 +130,20 @@ export default function MyProperties() {
                       {prop.rooms && <span>{prop.rooms} quarto(s)</span>}
                       {prop.campus && <span>• {prop.campus}</span>}
                     </div>
+                    <p className="text-xs text-muted-foreground">Solicitado em: {requestedAt}</p>
                     <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => toast.info('Edição em breve!')}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={!canEditOrDelete}
+                        onClick={() => navigate(`/host/edit/${prop.id}`)}
+                      >
                         <Edit className="h-3.5 w-3.5" /> Editar
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id}>
+                          <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id || !canEditOrDelete}>
                             {deleting === prop.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                             Excluir
                           </Button>
@@ -139,13 +157,18 @@ export default function MyProperties() {
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(prop.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => handleDelete(prop.id, propertyStatus)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                               Sim, excluir
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
+                    {isPending && (
+                      <p className="text-xs text-muted-foreground">
+                        Em análise: edição e exclusão ficam bloqueadas até a revisão do admin.
+                      </p>
+                    )}
                   </div>
                 </div>
               </CardContent>

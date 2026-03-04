@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,11 +66,31 @@ function validateStep(step: number, data: WizardData): string | null {
   }
 }
 
+function validateStepForEdit(step: number, data: WizardData): string | null {
+  switch (step) {
+    case 0:
+    case 1:
+      return validateStep(step, data);
+    case 2:
+      if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
+      return null;
+    case 3:
+      return null;
+    default:
+      return null;
+  }
+}
+
 export function PropertyWizard() {
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = Boolean(editId);
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(initialData);
   const [publishing, setPublishing] = useState(false);
+  const [loadingProperty, setLoadingProperty] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingDocumentPaths, setExistingDocumentPaths] = useState<string[]>([]);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -80,7 +100,7 @@ export function PropertyWizard() {
     setData((d) => ({ ...d, amenities: d.amenities.includes(a) ? d.amenities.filter((x) => x !== a) : [...d.amenities, a] }));
 
   const handleNext = () => {
-    const error = validateStep(step, data);
+    const error = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
     if (error) {
       toast.error(error);
       return;
@@ -88,8 +108,50 @@ export function PropertyWizard() {
     setStep((s) => s + 1);
   };
 
+  useEffect(() => {
+    const fetchPropertyForEdit = async () => {
+      if (!isEditMode || !editId || !user) return;
+
+      setLoadingProperty(true);
+      try {
+        const { data: existingProperty, error } = await supabase
+          .from('properties')
+          .select('id, owner_id, title, address, campus, rooms, bathrooms, amenities, images, document_paths, no_fiador, price, accepts_pet, description')
+          .eq('id', editId)
+          .eq('owner_id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          title: existingProperty.title ?? '',
+          address: existingProperty.address ?? '',
+          campus: (existingProperty.campus as Campus | null) ?? '',
+          rooms: existingProperty.rooms ?? 1,
+          bathrooms: existingProperty.bathrooms ?? 1,
+          amenities: existingProperty.amenities ?? [],
+          noFiador: existingProperty.no_fiador ?? false,
+          price: String(existingProperty.price ?? ''),
+          acceptsPet: existingProperty.accepts_pet ?? false,
+          description: existingProperty.description ?? '',
+        }));
+
+        setExistingImages(existingProperty.images ?? []);
+        setExistingDocumentPaths(existingProperty.document_paths ?? []);
+      } catch (error: any) {
+        toast.error(error.message || 'Não foi possível carregar o anúncio para edição.');
+        navigate('/my-properties');
+      } finally {
+        setLoadingProperty(false);
+      }
+    };
+
+    fetchPropertyForEdit();
+  }, [isEditMode, editId, user, navigate]);
+
   const handlePublish = async () => {
-    const error = validateStep(step, data);
+    const error = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
     if (error) {
       toast.error(error);
       return;
@@ -99,7 +161,7 @@ export function PropertyWizard() {
 
     try {
       // Upload photos to public bucket
-      const imageUrls: string[] = [];
+      const imageUrls: string[] = [...existingImages];
       for (const photo of data.photos) {
         const path = `${user.id}/${Date.now()}-${photo.name}`;
         const { error } = await supabase.storage.from('property-images').upload(path, photo);
@@ -110,7 +172,7 @@ export function PropertyWizard() {
       }
 
       // Upload docs to private bucket
-      const documentPaths: string[] = [];
+      const documentPaths: string[] = [...existingDocumentPaths];
       for (const doc of data.docs) {
         const path = `${user.id}/${Date.now()}-${doc.name}`;
         const { error } = await supabase.storage.from('property-documents').upload(path, doc);
@@ -119,26 +181,53 @@ export function PropertyWizard() {
         }
       }
 
-      const { error } = await supabase.from('properties').insert({
-        owner_id: user.id,
-        title: data.title,
-        address: data.address,
-        campus: data.campus || null,
-        rooms: data.rooms,
-        bathrooms: data.bathrooms,
-        amenities: data.amenities,
-        images: imageUrls,
-        no_fiador: data.noFiador,
-        verified: false,
-        price: Number(data.price),
-        document_paths: documentPaths,
-        accepts_pet: data.acceptsPet,
-        description: data.description,
-        status: 'pending',
-        validation_status: 'pending_docs',
-      });
+      if (isEditMode && editId) {
+        const { error } = await supabase
+          .from('properties')
+          .update({
+            title: data.title,
+            address: data.address,
+            campus: data.campus || null,
+            rooms: data.rooms,
+            bathrooms: data.bathrooms,
+            amenities: data.amenities,
+            images: imageUrls,
+            no_fiador: data.noFiador,
+            price: Number(data.price),
+            document_paths: documentPaths,
+            accepts_pet: data.acceptsPet,
+            description: data.description,
+            status: 'pending',
+            validation_status: 'pending_docs',
+            rejection_reason: null,
+          })
+          .eq('id', editId)
+          .eq('owner_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('properties').insert({
+          owner_id: user.id,
+          title: data.title,
+          address: data.address,
+          campus: data.campus || null,
+          rooms: data.rooms,
+          bathrooms: data.bathrooms,
+          amenities: data.amenities,
+          images: imageUrls,
+          no_fiador: data.noFiador,
+          verified: false,
+          price: Number(data.price),
+          document_paths: documentPaths,
+          accepts_pet: data.acceptsPet,
+          description: data.description,
+          status: 'pending',
+          validation_status: 'pending_docs',
+        });
+
+        if (error) throw error;
+      }
+
       setSuccess(true);
     } catch (err: any) {
       toast.error('Erro ao publicar: ' + (err.message || 'Tente novamente'));
@@ -147,13 +236,22 @@ export function PropertyWizard() {
     }
   };
 
+  if (loadingProperty) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-24">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+        <p className="text-muted-foreground font-medium">Carregando dados do anúncio...</p>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
         <PartyPopper className="h-16 w-16 text-primary animate-bounce" />
-        <h2 className="text-2xl font-bold">Anúncio Publicado!</h2>
+        <h2 className="text-2xl font-bold">{isEditMode ? 'Anúncio Atualizado!' : 'Anúncio Publicado!'}</h2>
         <p className="text-muted-foreground max-w-sm">Seu imóvel foi enviado para análise e estará disponível em breve.</p>
-        <Button onClick={() => navigate('/host')} className="gap-2">
+        <Button onClick={() => navigate('/my-properties')} className="gap-2">
           <CheckCircle2 className="h-4 w-4" /> Ver Meus Anúncios
         </Button>
       </div>
@@ -269,7 +367,7 @@ export function PropertyWizard() {
         {step < STEPS.length - 1 ? (
           <Button onClick={handleNext} className="gap-1">Avançar <ArrowRight className="h-4 w-4" /></Button>
         ) : (
-          <Button onClick={handlePublish} className="gap-1">Finalizar Anúncio <CheckCircle2 className="h-4 w-4" /></Button>
+          <Button onClick={handlePublish} className="gap-1">{isEditMode ? 'Salvar Edição' : 'Finalizar Anúncio'} <CheckCircle2 className="h-4 w-4" /></Button>
         )}
       </div>
     </div>

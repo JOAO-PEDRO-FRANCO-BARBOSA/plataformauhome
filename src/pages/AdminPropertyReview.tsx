@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, Download, Eye, MapPin, BedDouble, Bath, DollarSign, PawPrint, ShieldCheck, FileText } from 'lucide-react';
+import { ImageLightbox } from '@/components/ImageLightbox';
 
 interface PropertyDetail {
   id: string;
@@ -22,6 +24,7 @@ interface PropertyDetail {
   no_fiador: boolean | null;
   images: string[] | null;
   document_paths: string[] | null;
+  rejection_reason: string | null;
   status: string;
   created_at: string;
 }
@@ -43,6 +46,10 @@ export default function AdminPropertyReview() {
   const [loading, setLoading] = useState(true);
   const [documents, setDocuments] = useState<DocumentLink[]>([]);
   const [updating, setUpdating] = useState<'approved' | 'rejected' | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const resolveImageUrl = (img: string) =>
     img.startsWith('http')
@@ -55,7 +62,7 @@ export default function AdminPropertyReview() {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, title, address, campus, price, rooms, bathrooms, description, amenities, accepts_pet, no_fiador, images, document_paths, status, created_at')
+        .select('id, title, address, campus, price, rooms, bathrooms, description, amenities, accepts_pet, no_fiador, images, document_paths, rejection_reason, status, created_at')
         .eq('id', id)
         .single();
 
@@ -93,13 +100,17 @@ export default function AdminPropertyReview() {
     fetchProperty();
   }, [fetchProperty]);
 
-  const handleUpdateStatus = async (nextStatus: 'approved' | 'rejected') => {
+  const handleUpdateStatus = async (nextStatus: 'approved' | 'rejected', reason?: string) => {
     if (!id) return;
     setUpdating(nextStatus);
     try {
+      const payload = nextStatus === 'rejected'
+        ? { status: nextStatus, rejection_reason: reason ?? null }
+        : { status: nextStatus, rejection_reason: null };
+
       const { error } = await supabase
         .from('properties')
-        .update({ status: nextStatus })
+        .update(payload)
         .eq('id', id);
 
       if (error) throw error;
@@ -136,6 +147,7 @@ export default function AdminPropertyReview() {
 
   const statusLabel = property.status === 'pending' ? 'Pendente' : property.status === 'approved' ? 'Aprovado' : 'Rejeitado';
   const statusVariant = property.status === 'pending' ? 'secondary' : property.status === 'approved' ? 'default' : 'destructive';
+  const requestedAt = new Date(property.created_at).toLocaleDateString('pt-BR');
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-28 p-4">
@@ -148,6 +160,7 @@ export default function AdminPropertyReview() {
       </div>
 
       <h1 className="text-2xl font-bold tracking-tight">{property.title}</h1>
+      <p className="text-sm text-muted-foreground">Solicitado em: {requestedAt}</p>
 
       {/* General Info */}
       <Card>
@@ -202,6 +215,17 @@ export default function AdminPropertyReview() {
         </CardContent>
       </Card>
 
+      {property.status === 'rejected' && property.rejection_reason && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Motivo da Rejeição</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground whitespace-pre-line">{property.rejection_reason}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Amenities */}
       {property.amenities && property.amenities.length > 0 && (
         <Card>
@@ -231,8 +255,12 @@ export default function AdminPropertyReview() {
                   key={i}
                   src={img}
                   alt={`Foto ${i + 1} - ${property.title}`}
-                  className="w-full h-40 object-cover rounded-lg border"
+                  className="w-full h-40 object-cover rounded-lg border cursor-zoom-in"
                   loading="lazy"
+                  onClick={() => {
+                    setLightboxIndex(i);
+                    setLightboxOpen(true);
+                  }}
                 />
               ))}
             </div>
@@ -298,13 +326,56 @@ export default function AdminPropertyReview() {
               size="lg"
               variant="destructive"
               disabled={!!updating}
-              onClick={() => handleUpdateStatus('rejected')}
+              onClick={() => setRejectDialogOpen(true)}
             >
               {updating === 'rejected' ? 'Rejeitando...' : 'Rejeitar Anúncio'}
             </Button>
           </div>
         </div>
       )}
+
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeitar anúncio</DialogTitle>
+            <DialogDescription>
+              Informe o motivo da rejeição. Esse texto será salvo para orientar o proprietário.
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            value={rejectionReason}
+            onChange={(event) => setRejectionReason(event.target.value)}
+            className="w-full min-h-28 rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Descreva claramente o que precisa ser corrigido..."
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)} disabled={updating === 'rejected'}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={updating === 'rejected'}
+              onClick={async () => {
+                const reason = rejectionReason.trim();
+                if (!reason) {
+                  toast.error('Informe o motivo da rejeição.');
+                  return;
+                }
+                await handleUpdateStatus('rejected', reason);
+              }}
+            >
+              {updating === 'rejected' ? 'Enviando...' : 'Enviar Rejeição'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ImageLightbox
+        open={lightboxOpen}
+        images={property.images}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxOpen(false)}
+      />
     </div>
   );
 }
