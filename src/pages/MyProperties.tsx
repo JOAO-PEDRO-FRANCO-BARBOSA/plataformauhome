@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Trash2, Edit, Loader2, Home, Plus } from 'lucide-react';
+import { Trash2, Edit, Loader2, Home, Plus, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface Property {
@@ -17,6 +17,7 @@ interface Property {
   images: string[] | null;
   status: string | null;
   validation_status: string | null;
+  rejection_reason: string | null;
   rooms: number | null;
   campus: string | null;
   created_at: string;
@@ -37,17 +38,27 @@ export default function MyProperties() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
-    supabase
-      .from('properties')
-      .select('id, title, price, address, images, status, validation_status, rooms, campus, created_at')
-      .eq('owner_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data, error }) => {
-        if (error) toast.error(error.message);
-        else setProperties(data ?? []);
+    const fetchMyProperties = async () => {
+      if (!user) return;
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, title, price, address, images, status, validation_status, rejection_reason, rooms, campus, created_at')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setProperties(data ?? []);
+      } catch (error: any) {
+        toast.error(error.message || 'Erro ao carregar seus imóveis.');
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchMyProperties();
   }, [user]);
 
   const handleDelete = async (id: string, status: string | null) => {
@@ -104,7 +115,8 @@ export default function MyProperties() {
           const propertyStatus = prop.status ?? prop.validation_status ?? 'pending';
           const status = statusLabels[propertyStatus] ?? statusLabels.pending;
           const isPending = propertyStatus === 'pending' || propertyStatus === 'pending_docs';
-          const canEditOrDelete = propertyStatus === 'approved';
+          const isApproved = propertyStatus === 'approved';
+          const isRejected = propertyStatus === 'rejected';
           const thumb = prop.images?.[0] || '/placeholder.svg';
           const requestedAt = new Date(prop.created_at).toLocaleDateString('pt-BR');
 
@@ -131,39 +143,55 @@ export default function MyProperties() {
                       {prop.campus && <span>• {prop.campus}</span>}
                     </div>
                     <p className="text-xs text-muted-foreground">Solicitado em: {requestedAt}</p>
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        disabled={!canEditOrDelete}
-                        onClick={() => navigate(`/host/edit/${prop.id}`)}
-                      >
-                        <Edit className="h-3.5 w-3.5" /> Editar
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id || !canEditOrDelete}>
-                            {deleting === prop.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                            Excluir
+
+                    {isRejected && (
+                      <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <p>
+                          <span className="font-medium">Motivo da recusa:</span>{' '}
+                          {prop.rejection_reason?.trim() || 'Não informado pelo administrador.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {(isApproved || isRejected) && (
+                      <div className="flex gap-2 pt-1">
+                        {isApproved && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => navigate(`/host/edit/${prop.id}`)}
+                          >
+                            <Edit className="h-3.5 w-3.5" /> Editar
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir imóvel?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              O anúncio "{prop.title}" será removido permanentemente. Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(prop.id, propertyStatus)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              Sim, excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                        )}
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id}>
+                              {deleting === prop.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              Excluir
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir imóvel?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O anúncio "{prop.title}" será removido permanentemente. Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(prop.id, propertyStatus)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Sim, excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+
                     {isPending && (
                       <p className="text-xs text-muted-foreground">
                         Em análise: edição e exclusão ficam bloqueadas até a revisão do admin.
