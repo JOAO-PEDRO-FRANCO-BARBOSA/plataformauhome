@@ -28,7 +28,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, title, address, campus, price, images, document_paths, created_at, status')
+        .select('id, title, address, campus, price, images, created_at, status')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
