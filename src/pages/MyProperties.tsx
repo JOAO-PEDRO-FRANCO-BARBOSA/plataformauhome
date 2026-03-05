@@ -43,6 +43,7 @@ export default function MyProperties() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [featuredModalProp, setFeaturedModalProp] = useState<Property | null>(null);
 
   useEffect(() => {
     const fetchMyProperties = async () => {
