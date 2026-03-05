@@ -75,7 +75,7 @@ export default function Dashboard() {
             <CarouselContent className="-ml-3">
               {favorited.map((p) => (
                 <CarouselItem key={p.id} className="pl-3 basis-[280px] md:basis-[320px]">
-                  <PropertyCard property={p} isFavorite={isFavorite(p.id)} onToggleFavorite={toggle} />
+                  <PropertyCard property={p} isFavorite={isFavorite(p.id)} onToggleFavorite={toggle} onOpenDetails={(prop) => navigate(`/marketplace/${prop.id}`)} />
                 </CarouselItem>
               ))}
             </CarouselContent>

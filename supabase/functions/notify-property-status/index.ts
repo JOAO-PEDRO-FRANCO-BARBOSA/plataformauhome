@@ -56,8 +56,9 @@ serve(async (req) => {
     console.log("✅ E-MAIL ACEITO PELO RESEND:", resData);
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 
-  } catch (error) {
-    console.error("❌ ERRO INTERNO:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("❌ ERRO INTERNO:", msg);
+    return new Response(JSON.stringify({ error: msg }), { status: 500 });
   }
 });

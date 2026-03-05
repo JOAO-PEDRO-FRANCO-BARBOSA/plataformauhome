@@ -90,6 +90,9 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDet
           </button>
           {/* Badges */}
           <div className="absolute bottom-3 left-3 flex gap-1.5">
+            {isFeatured && (
+              <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-xs">🌟 Destaque</Badge>
+            )}
             {property.noFiador && (
               <Badge className="bg-green-600 hover:bg-green-700 text-white text-xs">Sem Fiador</Badge>
             )}
