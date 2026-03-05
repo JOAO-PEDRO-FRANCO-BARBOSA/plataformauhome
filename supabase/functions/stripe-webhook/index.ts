@@ -1,71 +1,73 @@
-// @ts-nocheck
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import Stripe from 'https://esm.sh/stripe@14.25.0?target=deno';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import Stripe from 'npm:stripe@^14.16.0';
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3';
 
-Deno.serve(async (req) => {
+// Força o Stripe a usar o Fetch (compatível com Deno)
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') as string, {
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
+});
+
+// Provedor de criptografia nativo do Deno para validar a assinatura do Webhook
+const cryptoProvider = Stripe.createSubtleCryptoProvider();
+
+serve(async (req) => {
+  const signature = req.headers.get('Stripe-Signature');
+  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+
   try {
-    if (req.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
+    // IMPORTANTE: Webhooks precisam ler o texto cru (raw), não um JSON direto
+    const body = await req.text(); 
+    
+    let event;
+    try {
+      event = await stripe.webhooks.constructEventAsync(
+        body,
+        signature!,
+        webhookSecret!,
+        undefined,
+        cryptoProvider // Isso impede o erro de "crypto is not defined" no Deno
+      );
+    } catch (err: any) {
+      console.error(`❌ Falha na verificação de segurança do Stripe:`, err.message);
+      return new Response(err.message, { status: 400 });
     }
 
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    const stripeWebhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!stripeSecretKey || !stripeWebhookSecret || !supabaseUrl || !serviceRoleKey) {
-      return new Response('Missing required environment variables', { status: 500 });
-    }
-
-    const stripeSignature = req.headers.get('stripe-signature');
-    if (!stripeSignature) {
-      return new Response('Missing stripe-signature header', { status: 400 });
-    }
-
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2024-06-20',
-    });
-
-    const rawBody = await req.text();
-
-    const event = await stripe.webhooks.constructEventAsync(
-      rawBody,
-      stripeSignature,
-      stripeWebhookSecret,
-    );
-
+    // Se o evento for de pagamento concluído
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.payment_status !== 'paid') {
-        return new Response(JSON.stringify({ received: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
+      const session = event.data.object as any;
       const propertyId = session.metadata?.property_id;
 
-      if (!propertyId) {
-        return new Response('Missing property_id metadata', { status: 400 });
-      }
+      if (propertyId) {
+         console.log(`✅ Pagamento confirmado para o imóvel: ${propertyId}`);
+         
+         // Cria o cliente Supabase com a chave de administrador (Service Role) 
+         // para ter permissão de alterar a tabela por baixo dos panos
+         const supabaseAdmin = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+         );
 
-      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-      const { error } = await supabaseAdmin.rpc('activate_property_highlight', {
-        p_property_id: propertyId,
-      });
+         // Adiciona 7 dias a partir de agora
+         const featuredUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      if (error) {
-        console.error('Error updating featured_until:', error);
-        return new Response('Database update error', { status: 500 });
+         const { error } = await supabaseAdmin
+          .from('properties')
+          .update({ featured_until: featuredUntil })
+          .eq('id', propertyId);
+
+         if (error) {
+             console.error("❌ Erro ao atualizar o banco:", error);
+             throw error;
+         }
+         console.log(`🌟 Imóvel destacado com sucesso até ${featuredUntil}`);
       }
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('stripe-webhook error:', error);
-    return new Response('Webhook Error', { status: 400 });
+    return new Response(JSON.stringify({ received: true }), { status: 200 });
+
+  } catch (err: any) {
+    console.error("❌ Erro interno no webhook:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 });
