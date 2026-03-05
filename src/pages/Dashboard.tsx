@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PropertyCard } from '@/components/PropertyCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Users, Percent, GraduationCap } from 'lucide-react';
 
 export default function Dashboard() {
