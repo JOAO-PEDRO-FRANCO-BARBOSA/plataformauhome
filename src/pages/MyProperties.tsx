@@ -279,6 +279,40 @@ export default function MyProperties() {
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
       />
+
+      <Dialog open={!!featuredModalProp} onOpenChange={(open) => !open && setFeaturedModalProp(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center space-y-3">
+            <div className="mx-auto w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+              <Star className="h-8 w-8 text-amber-500 fill-amber-500" />
+            </div>
+            <DialogTitle className="text-xl">Destacar Anúncio</DialogTitle>
+            <DialogDescription className="text-base">
+              Coloque <span className="font-semibold">"{featuredModalProp?.title}"</span> no topo das buscas e atraia mais interessados!
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border bg-accent/30 p-4 space-y-2 text-sm">
+            <p className="flex items-center gap-2"><span className="text-amber-500">✦</span> Apareça no topo das buscas por <strong>7 dias</strong></p>
+            <p className="flex items-center gap-2"><span className="text-amber-500">✦</span> Badge <strong>"🌟 Destaque"</strong> visível no card</p>
+            <p className="flex items-center gap-2"><span className="text-amber-500">✦</span> Borda dourada que chama atenção</p>
+          </div>
+
+          <div className="text-center py-2">
+            <span className="text-3xl font-bold text-foreground">R$ 29,90</span>
+            <p className="text-xs text-muted-foreground mt-1">Pagamento único · 7 dias de destaque</p>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2" onClick={() => { /* TODO: integrar pagamento */ }}>
+              <Star className="h-4 w-4" /> Ir para Pagamento
+            </Button>
+            <DialogClose asChild>
+              <Button variant="ghost" className="w-full">Cancelar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
