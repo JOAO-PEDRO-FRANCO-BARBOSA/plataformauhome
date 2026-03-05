@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Trash2, Edit, Loader2, Home, Plus, AlertTriangle, Eye } from 'lucide-react';
+import { Trash2, Edit, Loader2, Home, Plus, AlertTriangle, Eye, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MediaCarousel } from '@/components/MediaCarousel';
 import { ImageLightbox } from '@/components/ImageLightbox';
@@ -23,6 +24,7 @@ interface Property {
   rooms: number | null;
   campus: string | null;
   created_at: string;
+  featured_until: string | null;
 }
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -41,6 +43,7 @@ export default function MyProperties() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [featuredModalProp, setFeaturedModalProp] = useState<Property | null>(null);
 
   useEffect(() => {
     const fetchMyProperties = async () => {
@@ -50,7 +53,7 @@ export default function MyProperties() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, address, images, status, validation_status, rejection_reason, rooms, campus, created_at')
+          .select('id, title, price, address, images, status, validation_status, rejection_reason, rooms, campus, created_at, featured_until')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: false });
 
@@ -122,6 +125,7 @@ export default function MyProperties() {
           const isPending = propertyStatus === 'pending' || propertyStatus === 'pending_docs';
           const isApproved = propertyStatus === 'approved';
           const isRejected = propertyStatus === 'rejected';
+          const isFeatured = !!(prop.featured_until && new Date(prop.featured_until) > new Date());
           const mediaItems = (prop.images?.length ? prop.images : ['/placeholder.svg']).map((url, index) => ({
             url,
             alt: `${prop.title} - imagem ${index + 1}`,
@@ -177,19 +181,60 @@ export default function MyProperties() {
                       </div>
                     )}
 
-                    {(isApproved || isRejected) && (
-                      <div className="flex gap-2 pt-1">
-                        {isApproved && (
+                    {isApproved && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {isFeatured ? (
+                          <Badge className="bg-amber-500/15 text-amber-700 border border-amber-300 text-xs gap-1">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            Em destaque até {new Date(prop.featured_until!).toLocaleDateString('pt-BR')}
+                          </Badge>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1.5"
-                            onClick={() => navigate(`/host/edit/${prop.id}`)}
+                            className="gap-1.5 border-amber-400 text-amber-700 hover:bg-amber-50"
+                            onClick={() => setFeaturedModalProp(prop)}
                           >
-                            <Edit className="h-3.5 w-3.5" /> Editar
+                            <Star className="h-3.5 w-3.5" /> Destacar Anúncio
                           </Button>
                         )}
 
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => navigate(`/host/edit/${prop.id}`)}
+                        >
+                          <Edit className="h-3.5 w-3.5" /> Editar
+                        </Button>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id}>
+                              {deleting === prop.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              Excluir
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir imóvel?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O anúncio "{prop.title}" será removido permanentemente. Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(prop.id, propertyStatus)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Sim, excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+
+                    {isRejected && (
+                      <div className="flex gap-2 pt-1">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id}>
@@ -234,6 +279,40 @@ export default function MyProperties() {
         initialIndex={lightboxIndex}
         onClose={() => setLightboxOpen(false)}
       />
+
+      <Dialog open={!!featuredModalProp} onOpenChange={(open) => !open && setFeaturedModalProp(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center space-y-3">
+            <div className="mx-auto w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+              <Star className="h-8 w-8 text-amber-500 fill-amber-500" />
+            </div>
+            <DialogTitle className="text-xl">Destacar Anúncio</DialogTitle>
+            <DialogDescription className="text-base">
+              Coloque <span className="font-semibold">"{featuredModalProp?.title}"</span> no topo das buscas e atraia mais interessados!
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-lg border bg-accent/30 p-4 space-y-2 text-sm">
+            <p className="flex items-center gap-2"><span className="text-amber-500">✦</span> Apareça no topo das buscas por <strong>7 dias</strong></p>
+            <p className="flex items-center gap-2"><span className="text-amber-500">✦</span> Badge <strong>"🌟 Destaque"</strong> visível no card</p>
+            <p className="flex items-center gap-2"><span className="text-amber-500">✦</span> Borda dourada que chama atenção</p>
+          </div>
+
+          <div className="text-center py-2">
+            <span className="text-3xl font-bold text-foreground">R$ 29,90</span>
+            <p className="text-xs text-muted-foreground mt-1">Pagamento único · 7 dias de destaque</p>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2" onClick={() => { /* TODO: integrar pagamento */ }}>
+              <Star className="h-4 w-4" /> Ir para Pagamento
+            </Button>
+            <DialogClose asChild>
+              <Button variant="ghost" className="w-full">Cancelar</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

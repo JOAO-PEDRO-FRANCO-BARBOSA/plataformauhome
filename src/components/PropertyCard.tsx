@@ -15,6 +15,7 @@ interface PropertyCardProps {
 export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDetails }: PropertyCardProps) {
   const [imgIndex, setImgIndex] = useState(0);
   const [isSavingFavorite, setIsSavingFavorite] = useState(false);
+  const isFeatured = !!(property.featured_until && new Date(property.featured_until) > new Date());
 
   const images = property.images;
   const hasMultiple = images.length > 1;
@@ -41,7 +42,7 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDet
   return (
     <>
       <Card
-        className="overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer"
+        className={`overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer ${isFeatured ? 'border-2 border-amber-400 shadow-amber-100/50' : ''}`}
         onClick={() => onOpenDetails(property)}
       >
         <div className="relative aspect-[4/3] overflow-hidden">
@@ -89,6 +90,9 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDet
           </button>
           {/* Badges */}
           <div className="absolute bottom-3 left-3 flex gap-1.5">
+            {isFeatured && (
+              <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-xs">🌟 Destaque</Badge>
+            )}
             {property.noFiador && (
               <Badge className="bg-green-600 hover:bg-green-700 text-white text-xs">Sem Fiador</Badge>
             )}

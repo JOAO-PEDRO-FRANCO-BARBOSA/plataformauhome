@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PropertyCard } from '@/components/PropertyCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Users, Percent, GraduationCap } from 'lucide-react';
 
 export default function Dashboard() {
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const { connected, loading: matchLoading } = useMatches();
   const { favoriteIds, toggle, isFavorite } = useFavorites();
   const { properties, loading: propLoading } = useProperties();
+  const navigate = useNavigate();
 
   const favorited = properties.filter((p) => favoriteIds.includes(p.id));
   const firstName = (profile.full_name || 'Estudante').split(' ')[0];
@@ -74,7 +75,7 @@ export default function Dashboard() {
             <CarouselContent className="-ml-3">
               {favorited.map((p) => (
                 <CarouselItem key={p.id} className="pl-3 basis-[280px] md:basis-[320px]">
-                  <PropertyCard property={p} isFavorite={isFavorite(p.id)} onToggleFavorite={toggle} />
+                  <PropertyCard property={p} isFavorite={isFavorite(p.id)} onToggleFavorite={toggle} onOpenDetails={(prop) => navigate(`/marketplace/${prop.id}`)} />
                 </CarouselItem>
               ))}
             </CarouselContent>

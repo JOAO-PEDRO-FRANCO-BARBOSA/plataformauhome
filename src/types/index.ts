@@ -35,6 +35,7 @@ export interface Property {
   acceptsPet: boolean;
   contactWhatsApp?: string;
   contactSocial?: string;
+  featured_until?: string | null;
 }
 
 export interface Match {
