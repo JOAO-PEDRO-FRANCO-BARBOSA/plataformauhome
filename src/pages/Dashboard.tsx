@@ -15,6 +15,7 @@ export default function Dashboard() {
   const { connected, loading: matchLoading } = useMatches();
   const { favoriteIds, toggle, isFavorite } = useFavorites();
   const { properties, loading: propLoading } = useProperties();
+  const navigate = useNavigate();
 
   const favorited = properties.filter((p) => favoriteIds.includes(p.id));
   const firstName = (profile.full_name || 'Estudante').split(' ')[0];
