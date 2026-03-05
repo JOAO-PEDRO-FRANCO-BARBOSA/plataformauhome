@@ -1,42 +1,25 @@
 
 
-# Dashboard Favorites + Contact Reveal Flow
+# Meus Imóveis + Filtro de Preço + Sidebar
 
-## Build Error Fix
+## Alterações
 
-The `npm:stripe@^14.16.0` import fails because there's no `deno.json` with `nodeModulesDir` config. Fix by adding an import map for the edge functions.
+### 1. `src/pages/MyProperties.tsx` — Already exists, minor tweaks
+The page already exists with proper empty state, CTA, loading, and delete functionality. It's well-implemented. No major changes needed — it already queries `properties` by `owner_id`, shows empty state with "Anunciar Imóvel" CTA, and lists properties with status badges.
 
-**Create `supabase/functions/deno.json`** with:
-```json
-{ "nodeModulesDir": "auto" }
-```
+### 2. `src/components/SidebarFilters.tsx` — Single-value price slider
+- Change the price slider from a dual-thumb range `[min, max]` to a single-thumb "Preço máximo" slider
+- Label changes from "Preço: R$ X – R$ Y" to "Preço máximo: R$ Y"
+- The slider value becomes a single number; the filter passes `[200, maxValue]` as the priceRange to keep backward compatibility with `useProperties`
 
-This resolves the npm specifier error for both `create-highlight-checkout` and `stripe-webhook`.
+### 3. `src/types/index.ts` — No changes needed
+The `PropertyFilters.priceRange` stays as `[number, number]` for backward compatibility.
 
-## Feature Changes
+### 4. `src/components/AppLayout.tsx` — Add "Meus Imóveis" to sidebar
+- Add a `Building2` nav item `{ title: 'Meus Imóveis', url: '/my-properties', icon: Building2 }` to the `navItems` array in the desktop sidebar
+- This makes it always visible in the sidebar (matching the reference screenshot pattern), while the dropdown menu keeps the conditional logic already in place
 
-### 1. `src/components/MarketplacePropertyPanel.tsx` — Contact reveal flow
-
-- Add `const [showContact, setShowContact] = useState(false)` state
-- Replace the always-visible "Fale com o Proprietário" section with:
-  - When `showContact === false`: Show a prominent purple "Tenho Interesse" button
-  - When `showContact === true`: Animate in (Tailwind `animate-in fade-in slide-in-from-bottom-2`) the "Contato do Proprietário" section with:
-    - Green WhatsApp button linking to `https://wa.me/55{digits}` (target `_blank`)
-    - Social link below if `contactSocial` exists
-  - Never display `owner_email` or `owner_cpf_cnpj`
-- Reset `showContact` to `false` when `property` changes (via useEffect)
-
-### 2. `src/pages/Dashboard.tsx` — Open modal instead of navigating
-
-- Import `MarketplacePropertyPanel` and add local state for `selectedProperty` and `detailsOpen`
-- Change `onOpenDetails` from `navigate(...)` to setting the selected property and opening the panel
-- The favorites query already works: `useProperties()` fetches approved properties, then filters by `favoriteIds`. This is correct as long as favorites exist in the DB.
-
-### 3. Files summary
-
-| File | Action |
-|------|--------|
-| `supabase/functions/deno.json` | CREATE — fix npm import |
-| `src/components/MarketplacePropertyPanel.tsx` | EDIT — add contact reveal |
-| `src/pages/Dashboard.tsx` | EDIT — open panel instead of navigate |
+### Summary of files to edit
+- `src/components/SidebarFilters.tsx` — single-thumb price slider
+- `src/components/AppLayout.tsx` — add "Meus Imóveis" to sidebar navItems
 

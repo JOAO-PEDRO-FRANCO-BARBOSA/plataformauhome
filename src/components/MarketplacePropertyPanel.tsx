@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MessageCircle, ExternalLink, MapPin, BedDouble } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageCircle, ExternalLink, MapPin, BedDouble, Heart } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,12 @@ function getSocialHref(value: string): string {
 export function MarketplacePropertyPanel({ open, onOpenChange, property }: MarketplacePropertyPanelProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [showContact, setShowContact] = useState(false);
+
+  // Reset contact reveal when property changes
+  useEffect(() => {
+    setShowContact(false);
+  }, [property?.id]);
 
   if (!property) return null;
 
@@ -101,30 +107,41 @@ export function MarketplacePropertyPanel({ open, onOpenChange, property }: Marke
 
             <Separator />
 
-            <div className="space-y-3">
-              <p className="text-base font-semibold">Fale com o Proprietário</p>
-              {whatsappHref ? (
-                <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white gap-2">
-                  <a href={whatsappHref} target="_blank" rel="noreferrer">
-                    <MessageCircle className="h-4 w-4" /> Conversar no WhatsApp
-                  </a>
-                </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">Contato via WhatsApp não informado.</p>
-              )}
+            {/* Contact Reveal Flow */}
+            {!showContact ? (
+              <Button
+                onClick={() => setShowContact(true)}
+                className="w-full gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-6"
+              >
+                <Heart className="h-5 w-5" />
+                Tenho Interesse
+              </Button>
+            ) : (
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <p className="text-base font-semibold">📞 Contato do Proprietário</p>
+                {whatsappHref ? (
+                  <Button asChild className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2 py-5">
+                    <a href={whatsappHref} target="_blank" rel="noreferrer">
+                      <MessageCircle className="h-5 w-5" /> Conversar no WhatsApp
+                    </a>
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Contato via WhatsApp não informado.</p>
+                )}
 
-              {property.contactSocial && (
-                <a
-                  href={getSocialHref(property.contactSocial)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {property.contactSocial}
-                </a>
-              )}
-            </div>
+                {property.contactSocial && (
+                  <a
+                    href={getSocialHref(property.contactSocial)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {property.contactSocial}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>
