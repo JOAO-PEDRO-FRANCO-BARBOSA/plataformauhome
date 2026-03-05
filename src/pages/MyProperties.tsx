@@ -24,6 +24,7 @@ interface Property {
   rooms: number | null;
   campus: string | null;
   created_at: string;
+  featured_until: string | null;
 }
 
 const statusLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
