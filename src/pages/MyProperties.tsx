@@ -53,7 +53,7 @@ export default function MyProperties() {
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id, title, price, address, images, status, validation_status, rejection_reason, rooms, campus, created_at')
+          .select('id, title, price, address, images, status, validation_status, rejection_reason, rooms, campus, created_at, featured_until')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: false });
 
