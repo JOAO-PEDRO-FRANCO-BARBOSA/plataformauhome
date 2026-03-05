@@ -36,19 +36,23 @@ Deno.serve(async (req) => {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+      if (session.payment_status !== 'paid') {
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       const propertyId = session.metadata?.property_id;
 
       if (!propertyId) {
         return new Response('Missing property_id metadata', { status: 400 });
       }
 
-      const featuredUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
       const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
-      const { error } = await supabaseAdmin
-        .from('properties')
-        .update({ featured_until: featuredUntil })
-        .eq('id', propertyId);
+      const { error } = await supabaseAdmin.rpc('activate_property_highlight', {
+        p_property_id: propertyId,
+      });
 
       if (error) {
         console.error('Error updating featured_until:', error);

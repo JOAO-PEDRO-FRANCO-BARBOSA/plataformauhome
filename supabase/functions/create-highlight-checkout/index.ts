@@ -2,6 +2,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@14.25.0?target=deno';
 
+interface CheckoutPayload {
+  property_id?: string;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -33,8 +37,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body = await req.json();
-    const propertyId = body?.property_id as string | undefined;
+    const body = (await req.json()) as CheckoutPayload;
+    const propertyId = body?.property_id;
 
     if (!propertyId) {
       return new Response(JSON.stringify({ error: 'property_id is required.' }), {
@@ -102,7 +106,7 @@ Deno.serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('create-highlight-checkout error:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,

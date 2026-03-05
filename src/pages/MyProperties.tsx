@@ -334,7 +334,15 @@ export default function MyProperties() {
               onClick={handleHighlightPayment}
               disabled={highlightLoading}
             >
-              <Star className="h-4 w-4" /> Ir para Pagamento
+              {highlightLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Redirecionando...
+                </>
+              ) : (
+                <>
+                  <Star className="h-4 w-4" /> Ir para Pagamento
+                </>
+              )}
             </Button>
             <DialogClose asChild>
               <Button variant="ghost" className="w-full">Cancelar</Button>

@@ -21,10 +21,12 @@ export function useProperties(filters?: PropertyFilters) {
 
         if (data) {
           const now = Date.now();
+          const isActiveHighlight = (featuredUntil: string | null) =>
+            Boolean(featuredUntil && new Date(featuredUntil).getTime() > now);
 
           const sortedRows = [...data].sort((a, b) => {
-            const aFeatured = Boolean(a.featured_until && new Date(a.featured_until).getTime() > now);
-            const bFeatured = Boolean(b.featured_until && new Date(b.featured_until).getTime() > now);
+            const aFeatured = isActiveHighlight(a.featured_until);
+            const bFeatured = isActiveHighlight(b.featured_until);
 
             if (aFeatured !== bFeatured) {
               return aFeatured ? -1 : 1;
