@@ -190,6 +190,7 @@ export type Database = {
           created_at: string
           description: string | null
           document_paths: string[] | null
+          featured_until: string | null
           id: string
           images: string[] | null
           no_fiador: boolean | null
@@ -215,6 +216,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           document_paths?: string[] | null
+          featured_until?: string | null
           id?: string
           images?: string[] | null
           no_fiador?: boolean | null
@@ -240,6 +242,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           document_paths?: string[] | null
+          featured_until?: string | null
           id?: string
           images?: string[] | null
           no_fiador?: boolean | null
@@ -258,6 +261,61 @@ export type Database = {
           {
             foreignKeyName: "properties_owner_id_fkey"
             columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservations: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          owner_id: string
+          property_id: string
+          status: string
+          stripe_checkout_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          owner_id: string
+          property_id: string
+          status?: string
+          stripe_checkout_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          property_id?: string
+          status?: string
+          stripe_checkout_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_tenant_id_fkey"
+            columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
