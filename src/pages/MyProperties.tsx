@@ -181,19 +181,60 @@ export default function MyProperties() {
                       </div>
                     )}
 
-                    {(isApproved || isRejected) && (
-                      <div className="flex gap-2 pt-1">
-                        {isApproved && (
+                    {isApproved && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {isFeatured ? (
+                          <Badge className="bg-amber-500/15 text-amber-700 border border-amber-300 text-xs gap-1">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            Em destaque até {new Date(prop.featured_until!).toLocaleDateString('pt-BR')}
+                          </Badge>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-1.5"
-                            onClick={() => navigate(`/host/edit/${prop.id}`)}
+                            className="gap-1.5 border-amber-400 text-amber-700 hover:bg-amber-50"
+                            onClick={() => setFeaturedModalProp(prop)}
                           >
-                            <Edit className="h-3.5 w-3.5" /> Editar
+                            <Star className="h-3.5 w-3.5" /> Destacar Anúncio
                           </Button>
                         )}
 
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          onClick={() => navigate(`/host/edit/${prop.id}`)}
+                        >
+                          <Edit className="h-3.5 w-3.5" /> Editar
+                        </Button>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id}>
+                              {deleting === prop.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              Excluir
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir imóvel?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O anúncio "{prop.title}" será removido permanentemente. Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDelete(prop.id, propertyStatus)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Sim, excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+
+                    {isRejected && (
+                      <div className="flex gap-2 pt-1">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="sm" variant="destructive" className="gap-1.5" disabled={deleting === prop.id}>
