@@ -185,6 +185,8 @@ export type Database = {
           amenities: string[] | null
           bathrooms: number | null
           campus: string | null
+          contact_social: string | null
+          contact_whatsapp: string | null
           created_at: string
           description: string | null
           document_paths: string[] | null
@@ -208,6 +210,8 @@ export type Database = {
           amenities?: string[] | null
           bathrooms?: number | null
           campus?: string | null
+          contact_social?: string | null
+          contact_whatsapp?: string | null
           created_at?: string
           description?: string | null
           document_paths?: string[] | null
@@ -231,6 +235,8 @@ export type Database = {
           amenities?: string[] | null
           bathrooms?: number | null
           campus?: string | null
+          contact_social?: string | null
+          contact_whatsapp?: string | null
           created_at?: string
           description?: string | null
           document_paths?: string[] | null

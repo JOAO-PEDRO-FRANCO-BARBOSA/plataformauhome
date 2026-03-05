@@ -4,20 +4,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Heart, MapPin, BedDouble, ChevronLeft, ChevronRight, PawPrint } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ContactModal } from './ContactModal';
 
 interface PropertyCardProps {
   property: Property;
   isFavorite: boolean;
   onToggleFavorite: (id: string) => Promise<void>;
+  onOpenDetails: (property: Property) => void;
 }
 
-export function PropertyCard({ property, isFavorite, onToggleFavorite }: PropertyCardProps) {
-  const [contactOpen, setContactOpen] = useState(false);
+export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDetails }: PropertyCardProps) {
   const [imgIndex, setImgIndex] = useState(0);
   const [isSavingFavorite, setIsSavingFavorite] = useState(false);
-  const navigate = useNavigate();
 
   const images = property.images;
   const hasMultiple = images.length > 1;
@@ -45,7 +42,7 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite }: Propert
     <>
       <Card
         className="overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer"
-        onClick={() => navigate(`/marketplace/${property.id}`)}
+        onClick={() => onOpenDetails(property)}
       >
         <div className="relative aspect-[4/3] overflow-hidden">
           <img
@@ -118,12 +115,11 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite }: Propert
             <BedDouble className="w-3.5 h-3.5" />
             <span>{property.rooms} {property.rooms === 1 ? 'quarto' : 'quartos'}</span>
           </div>
-          <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); setContactOpen(true); }}>
+          <Button size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); onOpenDetails(property); }}>
             Tenho Interesse
           </Button>
         </CardContent>
       </Card>
-      <ContactModal open={contactOpen} onOpenChange={setContactOpen} title={`Interesse: ${property.title}`} />
     </>
   );
 }

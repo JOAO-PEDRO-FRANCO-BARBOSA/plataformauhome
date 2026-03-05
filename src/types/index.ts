@@ -33,6 +33,8 @@ export interface Property {
   description: string;
   amenities: string[];
   acceptsPet: boolean;
+  contactWhatsApp?: string;
+  contactSocial?: string;
 }
 
 export interface Match {

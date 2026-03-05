@@ -3,13 +3,17 @@ import { PropertyFilters } from '@/types';
 import { useProperties } from '@/hooks/useProperties';
 import { useFavorites } from '@/hooks/useFavorites';
 import { PropertyCard } from '@/components/PropertyCard';
+import { MarketplacePropertyPanel } from '@/components/MarketplacePropertyPanel';
 import { SidebarFilters } from '@/components/SidebarFilters';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SlidersHorizontal } from 'lucide-react';
+import { Property } from '@/types';
 
 export default function Marketplace() {
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [filters, setFilters] = useState<PropertyFilters>({
     campus: 'todos',
     priceRange: [200, 2500],
@@ -83,12 +87,22 @@ export default function Marketplace() {
                   property={p}
                   isFavorite={isFavorite(p.id)}
                   onToggleFavorite={toggle}
+                  onOpenDetails={(property) => {
+                    setSelectedProperty(property);
+                    setDetailsOpen(true);
+                  }}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <MarketplacePropertyPanel
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        property={selectedProperty}
+      />
     </div>
   );
 }

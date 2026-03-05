@@ -32,6 +32,8 @@ export function useProperties(filters?: PropertyFilters) {
             description: p.description ?? '',
             amenities: (p.amenities as string[]) ?? [],
             acceptsPet: p.accepts_pet ?? false,
+            contactWhatsApp: p.contact_whatsapp ?? undefined,
+            contactSocial: p.contact_social ?? undefined,
           })));
         }
       } catch (error) {
