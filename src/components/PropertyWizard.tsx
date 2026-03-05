@@ -195,6 +195,53 @@ function composeAddress(data: WizardData): string {
     .join(' | ');
 }
 
+function parseComposedAddress(address: string | null) {
+  if (!address) {
+    return {
+      street: '',
+      addressNumber: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      cep: '',
+      addressComplement: '',
+      cepValidated: false,
+    };
+  }
+
+  const parts = address.split(' | ').map((part) => part.trim());
+  if (parts.length < 4) {
+    return {
+      street: address,
+      addressNumber: '',
+      neighborhood: '',
+      city: '',
+      state: '',
+      cep: '',
+      addressComplement: '',
+      cepValidated: false,
+    };
+  }
+
+  const [streetWithNumber, neighborhood, cityState, cepPart, complement = ''] = parts;
+  const streetSplitIndex = streetWithNumber.lastIndexOf(',');
+  const street = streetSplitIndex > -1 ? streetWithNumber.slice(0, streetSplitIndex).trim() : streetWithNumber;
+  const addressNumber = streetSplitIndex > -1 ? streetWithNumber.slice(streetSplitIndex + 1).trim() : '';
+  const [city = '', state = ''] = cityState.split(' - ').map((part) => part.trim());
+  const formattedCep = formatCep(cepPart);
+
+  return {
+    street,
+    addressNumber,
+    neighborhood,
+    city,
+    state,
+    cep: formattedCep,
+    addressComplement: complement,
+    cepValidated: isValidCep(formattedCep),
+  };
+}
+
 function validateStep(step: number, data: WizardData): string | null {
   switch (step) {
     case 0:
@@ -400,10 +447,19 @@ export function PropertyWizard() {
 
         if (error) throw error;
 
+        const parsedAddress = parseComposedAddress(existingProperty.address);
+
         setData((prev) => ({
           ...prev,
           title: existingProperty.title ?? '',
-          street: existingProperty.address ?? '',
+          cep: parsedAddress.cep,
+          street: parsedAddress.street,
+          addressNumber: parsedAddress.addressNumber,
+          addressComplement: parsedAddress.addressComplement,
+          neighborhood: parsedAddress.neighborhood,
+          city: parsedAddress.city,
+          state: parsedAddress.state,
+          cepValidated: parsedAddress.cepValidated,
           campus: (existingProperty.campus as Campus | null) ?? '',
           rooms: existingProperty.rooms ?? 1,
           bathrooms: existingProperty.bathrooms ?? 1,

@@ -19,6 +19,18 @@ function normalizeBrazilPhone(value: string): string {
   return digits.startsWith('55') && digits.length > 11 ? digits.slice(2) : digits;
 }
 
+function getSocialHref(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '#';
+  if (trimmed.startsWith('@')) {
+    return `https://instagram.com/${trimmed.slice(1)}`;
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
 export function MarketplacePropertyPanel({ open, onOpenChange, property }: MarketplacePropertyPanelProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -103,7 +115,7 @@ export function MarketplacePropertyPanel({ open, onOpenChange, property }: Marke
 
               {property.contactSocial && (
                 <a
-                  href={property.contactSocial.startsWith('http') ? property.contactSocial : `https://${property.contactSocial}`}
+                  href={getSocialHref(property.contactSocial)}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
