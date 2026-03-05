@@ -125,6 +125,7 @@ export default function MyProperties() {
           const isPending = propertyStatus === 'pending' || propertyStatus === 'pending_docs';
           const isApproved = propertyStatus === 'approved';
           const isRejected = propertyStatus === 'rejected';
+          const isFeatured = !!(prop.featured_until && new Date(prop.featured_until) > new Date());
           const mediaItems = (prop.images?.length ? prop.images : ['/placeholder.svg']).map((url, index) => ({
             url,
             alt: `${prop.title} - imagem ${index + 1}`,
