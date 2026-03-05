@@ -44,6 +44,7 @@ export default function MyProperties() {
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [featuredModalProp, setFeaturedModalProp] = useState<Property | null>(null);
+  const [highlightLoading, setHighlightLoading] = useState(false);
 
   useEffect(() => {
     const fetchMyProperties = async () => {
@@ -85,6 +86,30 @@ export default function MyProperties() {
       toast.error(err.message || 'Erro ao excluir imóvel');
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleHighlightPayment = async () => {
+    if (!featuredModalProp) return;
+
+    setHighlightLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-highlight-checkout', {
+        body: { property_id: featuredModalProp.id },
+      });
+
+      if (error) throw error;
+
+      const checkoutUrl = data?.url as string | undefined;
+      if (!checkoutUrl) {
+        throw new Error('URL do checkout não retornada.');
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error: any) {
+      toast.error(error.message || 'Não foi possível iniciar o pagamento do destaque.');
+    } finally {
+      setHighlightLoading(false);
     }
   };
 
@@ -304,7 +329,11 @@ export default function MyProperties() {
           </div>
 
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2" onClick={() => { /* TODO: integrar pagamento */ }}>
+            <Button
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white gap-2"
+              onClick={handleHighlightPayment}
+              disabled={highlightLoading}
+            >
               <Star className="h-4 w-4" /> Ir para Pagamento
             </Button>
             <DialogClose asChild>

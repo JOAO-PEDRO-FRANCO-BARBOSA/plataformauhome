@@ -14,12 +14,28 @@ export function useProperties(filters?: PropertyFilters) {
         const { data, error } = await supabase
           .from('properties')
           .select('*')
-          .eq('status', 'approved');
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         if (data) {
-          setProperties(data.map((p) => ({
+          const now = Date.now();
+
+          const sortedRows = [...data].sort((a, b) => {
+            const aFeatured = Boolean(a.featured_until && new Date(a.featured_until).getTime() > now);
+            const bFeatured = Boolean(b.featured_until && new Date(b.featured_until).getTime() > now);
+
+            if (aFeatured !== bFeatured) {
+              return aFeatured ? -1 : 1;
+            }
+
+            const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+            const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+            return bCreated - aCreated;
+          });
+
+          setProperties(sortedRows.map((p) => ({
             id: p.id,
             title: p.title,
             images: (p.images as string[]) ?? [],
@@ -34,6 +50,7 @@ export function useProperties(filters?: PropertyFilters) {
             acceptsPet: p.accepts_pet ?? false,
             contactWhatsApp: p.contact_whatsapp ?? undefined,
             contactSocial: p.contact_social ?? undefined,
+            featured_until: p.featured_until ?? null,
           })));
         }
       } catch (error) {
