@@ -42,7 +42,7 @@ export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDet
   return (
     <>
       <Card
-        className="overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer"
+        className={`overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer ${isFeatured ? 'border-2 border-amber-400 shadow-amber-100/50' : ''}`}
         onClick={() => onOpenDetails(property)}
       >
         <div className="relative aspect-[4/3] overflow-hidden">
