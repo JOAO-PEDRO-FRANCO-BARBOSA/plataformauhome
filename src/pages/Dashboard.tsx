@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useMatches } from '@/hooks/useMatches';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -7,18 +8,27 @@ import { Button } from '@/components/ui/button';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { PropertyCard } from '@/components/PropertyCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Search, Users, Percent, GraduationCap } from 'lucide-react';
+import { MarketplacePropertyPanel } from '@/components/MarketplacePropertyPanel';
+import { Property } from '@/types';
 
 export default function Dashboard() {
   const { profile } = useProfile();
   const { connected, loading: matchLoading } = useMatches();
   const { favoriteIds, toggle, isFavorite } = useFavorites();
   const { properties, loading: propLoading } = useProperties();
-  const navigate = useNavigate();
+
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const favorited = properties.filter((p) => favoriteIds.includes(p.id));
   const firstName = (profile.full_name || 'Estudante').split(' ')[0];
+
+  const handleOpenDetails = (property: Property) => {
+    setSelectedProperty(property);
+    setDetailsOpen(true);
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -75,7 +85,7 @@ export default function Dashboard() {
             <CarouselContent className="-ml-3">
               {favorited.map((p) => (
                 <CarouselItem key={p.id} className="pl-3 basis-[280px] md:basis-[320px]">
-                  <PropertyCard property={p} isFavorite={isFavorite(p.id)} onToggleFavorite={toggle} onOpenDetails={(prop) => navigate(`/marketplace/${prop.id}`)} />
+                  <PropertyCard property={p} isFavorite={isFavorite(p.id)} onToggleFavorite={toggle} onOpenDetails={handleOpenDetails} />
                 </CarouselItem>
               ))}
             </CarouselContent>
@@ -84,6 +94,12 @@ export default function Dashboard() {
           </Carousel>
         )}
       </div>
+
+      <MarketplacePropertyPanel
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        property={selectedProperty}
+      />
     </div>
   );
 }
