@@ -15,6 +15,7 @@ interface PropertyCardProps {
 export function PropertyCard({ property, isFavorite, onToggleFavorite, onOpenDetails }: PropertyCardProps) {
   const [imgIndex, setImgIndex] = useState(0);
   const [isSavingFavorite, setIsSavingFavorite] = useState(false);
+  const isFeatured = !!(property.featured_until && new Date(property.featured_until) > new Date());
 
   const images = property.images;
   const hasMultiple = images.length > 1;
