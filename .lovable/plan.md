@@ -1,25 +1,31 @@
 
 
-# Meus Imóveis + Filtro de Preço + Sidebar
+# Fix Build Error + Refine Reset Password Flow
 
-## Alterações
+## Problem
 
-### 1. `src/pages/MyProperties.tsx` — Already exists, minor tweaks
-The page already exists with proper empty state, CTA, loading, and delete functionality. It's well-implemented. No major changes needed — it already queries `properties` by `owner_id`, shows empty state with "Anunciar Imóvel" CTA, and lists properties with status badges.
+1. **Build error**: `supabase/functions/deno.json` was not created (file not found). The `npm:stripe` import in both edge functions fails without `nodeModulesDir: "auto"`.
+2. **ResetPassword.tsx** is missing a "Confirmar Senha" (confirm password) field and redirects to `/dashboard` instead of `/login` as requested.
+3. Everything else (ForgotPassword, Login link, routes, AuthContext) is already fully implemented and correct.
 
-### 2. `src/components/SidebarFilters.tsx` — Single-value price slider
-- Change the price slider from a dual-thumb range `[min, max]` to a single-thumb "Preço máximo" slider
-- Label changes from "Preço: R$ X – R$ Y" to "Preço máximo: R$ Y"
-- The slider value becomes a single number; the filter passes `[200, maxValue]` as the priceRange to keep backward compatibility with `useProperties`
+## Changes
 
-### 3. `src/types/index.ts` — No changes needed
-The `PropertyFilters.priceRange` stays as `[number, number]` for backward compatibility.
+### 1. Create `supabase/functions/deno.json`
+```json
+{ "nodeModulesDir": "auto" }
+```
+This resolves the `npm:stripe` import error for both `create-highlight-checkout` and `stripe-webhook`.
 
-### 4. `src/components/AppLayout.tsx` — Add "Meus Imóveis" to sidebar
-- Add a `Building2` nav item `{ title: 'Meus Imóveis', url: '/my-properties', icon: Building2 }` to the `navItems` array in the desktop sidebar
-- This makes it always visible in the sidebar (matching the reference screenshot pattern), while the dropdown menu keeps the conditional logic already in place
+### 2. Update `src/pages/ResetPassword.tsx`
+- Add `confirmPassword` state field
+- Add "Confirmar Senha" input with Lock icon
+- Validate passwords match before submitting
+- Change redirect from `/dashboard` to `/login` after success
+- Keep existing premium UI style
 
-### Summary of files to edit
-- `src/components/SidebarFilters.tsx` — single-thumb price slider
-- `src/components/AppLayout.tsx` — add "Meus Imóveis" to sidebar navItems
+### No other files need changes
+- `ForgotPassword.tsx` — already complete with correct flow
+- `Login.tsx` — already has "Esqueci minha senha" link
+- `App.tsx` — already has `/forgot-password` and `/reset-password` routes
+- `AuthContext.tsx` — already has `resetPassword` method with correct `redirectTo`
 
