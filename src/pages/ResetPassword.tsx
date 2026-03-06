@@ -10,13 +10,13 @@ import logoImg from '@/assets/Logo_Uhome.png';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have a recovery session
     const hash = window.location.hash;
     if (!hash.includes('type=recovery')) {
       navigate('/login');
@@ -29,6 +29,10 @@ export default function ResetPassword() {
       setError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.');
+      return;
+    }
     setLoading(true);
     setError('');
     const { error } = await supabase.auth.updateUser({ password });
@@ -37,7 +41,7 @@ export default function ResetPassword() {
       setError(error.message);
     } else {
       setDone(true);
-      setTimeout(() => navigate('/dashboard'), 2000);
+      setTimeout(() => navigate('/login'), 2000);
     }
   };
 
@@ -50,14 +54,14 @@ export default function ResetPassword() {
           </div>
           <CardTitle className="text-2xl font-bold text-primary">Nova Senha</CardTitle>
           <CardDescription>
-            {done ? 'Senha atualizada com sucesso!' : 'Digite sua nova senha'}
+            {done ? 'Senha atualizada com sucesso!' : 'Digite e confirme sua nova senha'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {done ? (
             <div className="text-center space-y-4 py-4">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-              <p className="text-sm text-muted-foreground">Redirecionando...</p>
+              <p className="text-sm text-muted-foreground">Redirecionando para o login...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,10 +72,17 @@ export default function ResetPassword() {
                   <Input id="password" type="password" placeholder="Mínimo 6 caracteres" className="pl-10" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input id="confirmPassword" type="password" placeholder="Repita a senha" className="pl-10" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                </div>
+              </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-                Atualizar Senha
+                Redefinir Senha
               </Button>
             </form>
           )}
