@@ -14,7 +14,7 @@ serve(async (req) => {
     if (!pId) throw new Error("ID do imóvel ausente")
 
     const accessToken = Deno.env.get('MP_ACCESS_TOKEN')
-    const origin = "http://localhost:8081" // Sua porta confirmada
+    const origin = "http://localhost:8081" // Sua porta correta
 
     const preferenceData = {
       items: [{
@@ -29,7 +29,7 @@ serve(async (req) => {
         failure: `${origin}/my-properties`,
         pending: `${origin}/my-properties`
       }
-      // auto_return REMOVIDO: Isso permite que o Mercado Pago aceite o localhost
+      // auto_return removido para evitar erros com localhost
     }
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
