@@ -17,7 +17,6 @@ export default function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have a recovery session
     const hash = window.location.hash;
     if (!hash.includes('type=recovery')) {
       navigate('/login');
