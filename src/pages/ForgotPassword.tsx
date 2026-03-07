@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Mail, ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 export default function ForgotPassword() {
@@ -13,19 +14,31 @@ export default function ForgotPassword() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
+
     setLoading(true);
     setError('');
-    const { error } = await resetPassword(email);
-    setLoading(false);
-    if (error) {
-      setError(error);
-    } else {
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       setSent(true);
+      toast.success('Link de recuperação enviado com sucesso. Verifique seu e-mail.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Não foi possível enviar o link de recuperação.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
 
