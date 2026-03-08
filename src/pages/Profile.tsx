@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { HabitBadges } from '@/components/HabitBadges';
 import { toast } from 'sonner';
-import { Camera, Upload, Loader2, Trash2, Check } from 'lucide-react';
+import { Camera, Upload, Loader2, Trash2, Check, Mail, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
@@ -21,6 +21,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const updateHabit = (key: string, value: any) => {
@@ -84,6 +85,28 @@ export default function Profile() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!user?.email) {
+      toast.error('Não foi possível identificar o e-mail da conta.');
+      return;
+    }
+
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Enviamos um link de redefinição para o seu e-mail');
+    } catch (err: any) {
+      toast.error(err?.message || 'Não foi possível enviar o link de redefinição.');
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
   const habits = profile.habits || {};
 
   return (
@@ -115,6 +138,10 @@ export default function Profile() {
                     <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
                     {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                   </label>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <span>{user?.email ?? 'E-mail não disponível'}</span>
                 </div>
                 <div className="space-y-3 w-full">
                   <div>
@@ -156,6 +183,16 @@ export default function Profile() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={handlePasswordReset}
+                    disabled={sendingReset}
+                  >
+                    {sendingReset ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+                    Alterar Senha
+                  </Button>
                 </div>
               </div>
             </CardContent>

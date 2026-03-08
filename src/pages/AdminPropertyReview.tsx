@@ -16,6 +16,8 @@ interface PropertyDetail {
   title: string;
   address: string | null;
   campus: string | null;
+  owner_email: string | null;
+  owner_cpf_cnpj: string | null;
   price: number;
   rooms: number | null;
   bathrooms: number | null;
@@ -66,7 +68,7 @@ export default function AdminPropertyReview() {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, title, address, campus, price, rooms, bathrooms, description, amenities, accepts_pet, no_fiador, images, document_paths, rejection_reason, status, created_at')
+        .select('id, title, address, campus, owner_email, owner_cpf_cnpj, price, rooms, bathrooms, description, amenities, accepts_pet, no_fiador, images, document_paths, rejection_reason, status, created_at')
         .eq('id', id)
         .single();
 
@@ -197,6 +199,14 @@ export default function AdminPropertyReview() {
             <div className="flex items-center gap-2 text-muted-foreground">
               <span className="font-medium text-foreground">Campus:</span>
               <span>{property.campus || 'Não informado'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="font-medium text-foreground">E-mail do proprietário:</span>
+              <span>{property.owner_email || 'Não informado'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="font-medium text-foreground">CPF/CNPJ:</span>
+              <span>{property.owner_cpf_cnpj || 'Não informado'}</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <DollarSign className="h-4 w-4 shrink-0" />

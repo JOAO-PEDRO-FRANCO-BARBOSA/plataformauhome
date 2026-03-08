@@ -1,31 +1,41 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mail, Lock, User, UserPlus, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, Loader2, Eye, EyeOff, Chrome } from 'lucide-react';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  const passwordsMatch = password.length > 0 && confirmPassword.length > 0 && password === confirmPassword;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !confirmPassword) {
       setError('Preencha todos os campos.');
       return;
     }
     if (password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.');
       return;
     }
     setLoading(true);
@@ -34,7 +44,21 @@ export default function Register() {
     if (error) {
       setError(error);
     } else {
-      navigate('/onboarding');
+      navigate('/dashboard');
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    setError('');
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    if (oauthError) {
+      setError('Não foi possível iniciar o cadastro com Google.');
     }
   };
 
@@ -68,13 +92,63 @@ export default function Register() {
               <Label htmlFor="password">Senha</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="password" type="password" placeholder="Mínimo 6 caracteres" className="pl-10" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Mínimo 6 caracteres"
+                  className="pl-10 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirmar senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Repita sua senha"
+                  className="pl-10 pr-10"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            {confirmPassword.length > 0 && !passwordsMatch && (
+              <p className="text-sm text-destructive">As senhas precisam ser idênticas.</p>
+            )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading}>
+            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading || !passwordsMatch}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
               Criar Conta
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full gap-2 bg-white text-slate-900 hover:bg-slate-100"
+              size="lg"
+              onClick={handleGoogleRegister}
+            >
+              <Chrome className="h-4 w-4" />
+              Continuar com o Google
             </Button>
           </form>
           <div className="mt-6 text-center text-sm">

@@ -13,6 +13,8 @@ interface PendingProperty {
   address: string | null;
   campus: string | null;
   price: number;
+  owner_email: string | null;
+  owner_cpf_cnpj: string | null;
   thumbnailUrl: string | null;
   created_at: string;
   status: string;
@@ -28,7 +30,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .select('id, title, address, campus, price, images, created_at, status')
+        .select('id, title, address, campus, price, owner_email, owner_cpf_cnpj, images, created_at, status')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -48,6 +50,8 @@ export default function AdminDashboard() {
           address: item.address,
           campus: item.campus,
           price: Number(item.price),
+          owner_email: item.owner_email,
+          owner_cpf_cnpj: item.owner_cpf_cnpj,
           thumbnailUrl,
           created_at: item.created_at,
           status: item.status,
@@ -123,6 +127,17 @@ export default function AdminDashboard() {
                   <span>Campus: {property.campus ?? 'Não informado'}</span>
                   <span>Preço: R$ {property.price.toFixed(2)}</span>
                   <span>Solicitado em: {new Date(property.created_at).toLocaleDateString('pt-BR')}</span>
+                </div>
+
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm space-y-1">
+                  <p>
+                    <span className="font-medium text-foreground">E-mail do proprietário:</span>{' '}
+                    <span className="text-muted-foreground">{property.owner_email ?? 'Não informado'}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">CPF/CNPJ:</span>{' '}
+                    <span className="text-muted-foreground">{property.owner_cpf_cnpj ?? 'Não informado'}</span>
+                  </p>
                 </div>
 
                 <Button asChild variant="outline" size="sm" className="w-full">

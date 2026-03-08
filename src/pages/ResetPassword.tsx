@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 export default function ResetPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -77,12 +79,20 @@ export default function ResetPassword() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="new-password"
-                  type="password"
+                  type={showNewPassword ? 'text' : 'password'}
                   placeholder="Mínimo 6 caracteres"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showNewPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -92,12 +102,20 @@ export default function ResetPassword() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirm-password"
-                  type="password"
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Repita sua nova senha"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 

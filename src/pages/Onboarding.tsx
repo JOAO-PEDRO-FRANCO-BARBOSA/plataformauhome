@@ -33,7 +33,6 @@ export default function Onboarding() {
     earlyBird: false,
     studyHabit: 'moderado',
     searchType: 'republica',
-    campus: 'Santa Mônica',
     priceRange: [400, 800] as [number, number],
   });
 
@@ -103,7 +102,6 @@ export default function Onboarding() {
         course: data.course,
         age: data.age,
         college_period: data.college_period,
-        campus: data.campus,
         search_type: data.searchType,
         price_range_min: data.priceRange[0],
         price_range_max: data.priceRange[1],
@@ -266,17 +264,6 @@ export default function Onboarding() {
                     <SelectContent>
                       <SelectItem value="quarto">Quarto individual</SelectItem>
                       <SelectItem value="republica">República</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Campus preferido</Label>
-                  <Select value={data.campus} onValueChange={(v) => setData({ ...data, campus: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['Santa Mônica', 'Umuarama', 'Pontal', 'Glória'].map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                      ))}
                     </SelectContent>
                   </Select>
                 </div>
