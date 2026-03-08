@@ -53,8 +53,9 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('ERRO CRÍTICO:', error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
+    const msg = (error as Error).message ?? 'Erro desconhecido';
+    console.error('ERRO CRÍTICO:', msg)
+    return new Response(JSON.stringify({ error: msg }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400
     })
