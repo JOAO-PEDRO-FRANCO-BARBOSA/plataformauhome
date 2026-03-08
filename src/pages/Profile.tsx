@@ -17,7 +17,7 @@ import { Camera, Upload, Loader2, Trash2, Check, Mail, KeyRound } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
-  const { profile, updateProfile, isSaving } = useProfile();
+  const { profile, loading, updateProfile, isSaving } = useProfile();
   const { user, refreshProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
