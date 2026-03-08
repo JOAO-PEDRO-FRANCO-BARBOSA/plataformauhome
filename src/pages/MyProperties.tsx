@@ -94,19 +94,19 @@ export default function MyProperties() {
 
     setHighlightLoading(true);
     try {
+      console.log("Enviando ID:", featuredModalProp.id);
       const { data, error } = await supabase.functions.invoke('create-highlight-checkout', {
-        body: { property_id: featuredModalProp.id },
+        body: { propertyId: featuredModalProp.id },
       });
 
       if (error) throw error;
 
       const checkoutUrl = data?.url as string | undefined;
-      if (!checkoutUrl) {
-        throw new Error('URL do checkout não retornada.');
-      }
+      if (!checkoutUrl) throw new Error(data?.error || 'URL do checkout não retornada.');
 
       window.location.href = checkoutUrl;
     } catch (error: any) {
+      console.error('Erro no pagamento:', error);
       toast.error(error.message || 'Não foi possível iniciar o pagamento do destaque.');
     } finally {
       setHighlightLoading(false);
