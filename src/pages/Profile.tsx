@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { HabitBadges } from '@/components/HabitBadges';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Camera, Upload, Loader2, Trash2, Check, Mail, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
