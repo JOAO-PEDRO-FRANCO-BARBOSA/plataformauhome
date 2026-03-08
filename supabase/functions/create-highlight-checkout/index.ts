@@ -19,7 +19,7 @@ serve(async (req) => {
     const preferenceData = {
       items: [{
         title: "Destaque de Anúncio - Uhome",
-        unit_price: 29.90,
+        unit_price: 1.00,
         quantity: 1,
         currency_id: "BRL"
       }],
