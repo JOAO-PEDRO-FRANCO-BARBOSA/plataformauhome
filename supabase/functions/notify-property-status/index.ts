@@ -1,9 +1,29 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 serve(async (req) => {
   try {
+    if (!RESEND_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Configuração ausente: RESEND_API_KEY" }),
+        { status: 500 },
+      );
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Configuração ausente: credenciais do Supabase" }),
+        { status: 500 },
+      );
+    }
+
+    // Cliente admin para leitura sem bloqueio de RLS.
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
     const payload = await req.json();
     const { record, old_record } = payload;
 
@@ -13,7 +33,35 @@ serve(async (req) => {
       return new Response("Status inalterado", { status: 200 });
     }
 
-    const ownerEmail = "francojoao512@gmail.com"; // Seu e-mail de teste
+    const propertyId = payload?.propertyId ?? payload?.property_id ?? record?.id;
+    if (!propertyId) {
+      return new Response(
+        JSON.stringify({ error: "property_id não encontrado no payload." }),
+        { status: 400 },
+      );
+    }
+
+    const { data: propertyData, error: propertyError } = await supabaseAdmin
+      .from("properties")
+      .select("owner_email")
+      .eq("id", propertyId)
+      .single();
+
+    if (propertyError) {
+      console.error("Erro ao consultar imóvel para notificação:", propertyError.message);
+      return new Response(
+        JSON.stringify({ error: "Não foi possível buscar os dados do proprietário." }),
+        { status: 500 },
+      );
+    }
+
+    const ownerEmail = propertyData?.owner_email?.trim()?.toLowerCase();
+    if (!ownerEmail) {
+      return new Response(
+        JSON.stringify({ error: "E-mail do proprietário não encontrado no banco de dados" }),
+        { status: 422 },
+      );
+    }
 
     let subject = "";
     let htmlTemplate = "";
