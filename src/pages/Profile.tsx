@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { HabitBadges } from '@/components/HabitBadges';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Camera, Upload, Loader2, Trash2, Check, Mail, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Profile() {
-  const { profile, updateProfile, isSaving } = useProfile();
+  const { profile, loading, updateProfile, isSaving } = useProfile();
   const { user, refreshProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
@@ -108,6 +109,28 @@ export default function Profile() {
   };
 
   const habits = profile.habits || {};
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Card>
+          <CardContent className="pt-6 flex flex-col items-center gap-4">
+            <Skeleton className="w-24 h-24 rounded-full" />
+            <Skeleton className="h-4 w-48" />
+            <div className="space-y-3 w-full">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

@@ -24,13 +24,15 @@ const studyConfig = {
 };
 
 export function HabitBadges({ habits, size = 'default' }: HabitBadgesProps) {
+  if (!habits) return null;
+
   const badges = habitConfig.filter((h) => {
     if (h.key === 'smokes') return habits.smokes === h.show;
     if (h.key === 'earlyBird') return habits.earlyBird === h.show;
     return habits[h.key] === h.show;
   });
 
-  const study = studyConfig[habits.studyHabit];
+  const study = studyConfig[habits.studyHabit] ?? studyConfig.moderado;
 
   return (
     <div className="flex flex-wrap gap-1.5">
