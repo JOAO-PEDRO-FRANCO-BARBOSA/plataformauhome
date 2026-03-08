@@ -110,6 +110,28 @@ export default function Profile() {
 
   const habits = profile.habits || {};
 
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Card>
+          <CardContent className="pt-6 flex flex-col items-center gap-4">
+            <Skeleton className="w-24 h-24 rounded-full" />
+            <Skeleton className="h-4 w-48" />
+            <div className="space-y-3 w-full">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
