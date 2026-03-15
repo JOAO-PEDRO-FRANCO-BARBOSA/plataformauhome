@@ -14,7 +14,11 @@ serve(async (req) => {
     if (!pId) throw new Error("ID do imóvel ausente")
 
     const accessToken = Deno.env.get('MP_ACCESS_TOKEN')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const origin = "http://localhost:8081" // Sua porta correta
+    const notificationUrl = supabaseUrl
+      ? `${supabaseUrl}/functions/v1/mercadopago-webhook`
+      : undefined
 
     const preferenceData = {
       items: [{
@@ -24,10 +28,14 @@ serve(async (req) => {
         currency_id: "BRL"
       }],
       external_reference: String(pId),
+      metadata: {
+        property_id: String(pId)
+      },
+      ...(notificationUrl ? { notification_url: notificationUrl } : {}),
       back_urls: {
-        success: `${origin}/my-properties`,
-        failure: `${origin}/my-properties`,
-        pending: `${origin}/my-properties`
+        success: "https://uhome.app.br/my-properties",
+        failure: "https://uhome.app.br/my-properties",
+        pending: "https://uhome.app.br/my-properties"
       }
       // auto_return removido para evitar erros com localhost
     }
