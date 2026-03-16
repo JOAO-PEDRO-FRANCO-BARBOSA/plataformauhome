@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
@@ -15,7 +16,7 @@ serve(async (req) => {
 
     const accessToken = Deno.env.get('MP_ACCESS_TOKEN')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const origin = "http://localhost:8081" // Sua porta correta
+    const origin = "https://uhome.app.br" // Sua porta correta
     const notificationUrl = supabaseUrl
       ? `${supabaseUrl}/functions/v1/mercadopago-webhook`
       : undefined
