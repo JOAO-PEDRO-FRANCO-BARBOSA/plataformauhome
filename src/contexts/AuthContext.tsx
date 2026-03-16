@@ -53,6 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       if (_event === 'PASSWORD_RECOVERY') {
         setIsPasswordRecovery(true);
+      } else if (
+        _event === 'SIGNED_IN' ||
+        _event === 'USER_UPDATED' ||
+        _event === 'SIGNED_OUT'
+      ) {
+        setIsPasswordRecovery(false);
       }
       if (session?.user) {
         setTimeout(() => fetchProfile(session.user.id), 0);

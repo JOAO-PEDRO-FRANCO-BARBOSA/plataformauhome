@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ export default function UpdatePassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { clearPasswordRecovery } = useAuth();
 
   const passwordErrors = newPassword.length > 0 ? getPasswordErrors(newPassword) : [];
   const passwordValid = isPasswordStrong(newPassword);
@@ -34,6 +36,7 @@ export default function UpdatePassword() {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
 
+      clearPasswordRecovery();
       await supabase.auth.signOut();
       toast.success('Senha atualizada com sucesso! Faça login para continuar.');
       navigate('/login');
