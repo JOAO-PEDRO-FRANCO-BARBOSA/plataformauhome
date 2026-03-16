@@ -43,7 +43,7 @@ serve(async (req) => {
 
     const { data: propertyData, error: propertyError } = await supabaseAdmin
       .from("properties")
-      .select("owner_email")
+      .select("owner_email, title")
       .eq("id", propertyId)
       .single();
 
@@ -63,15 +63,23 @@ serve(async (req) => {
       );
     }
 
+    const propertyName =
+      payload?.property_name ??
+      payload?.propertyName ??
+      record?.title ??
+      record?.name ??
+      propertyData?.title ??
+      "seu imóvel";
+
     let subject = "";
     let htmlTemplate = "";
 
     if (record.status === "approved") {
       subject = "🎉 Seu imóvel foi aprovado no UHOME!";
-      htmlTemplate = `<h2>Excelente notícia!</h2><p>O seu anúncio para <strong>${record.title}</strong> foi aprovado.</p>`;
+      htmlTemplate = `<h2>Excelente notícia!</h2><p>O seu anúncio para <strong>${propertyName}</strong> foi aprovado.</p>`;
     } else if (record.status === "rejected") {
       subject = "⚠️ Ajustes necessários no seu anúncio do UHOME";
-      htmlTemplate = `<h2>Olá, precisamos de alguns ajustes.</h2><p>Motivo: ${record.rejection_reason || "Não especificado"}</p>`;
+      htmlTemplate = `<h2>Olá, precisamos de alguns ajustes.</h2><p>O anúncio do imóvel <strong>${propertyName}</strong> foi reprovado.</p><p>Motivo: ${record.rejection_reason || "Não especificado"}</p>`;
     } else {
       return new Response("Status ignorado", { status: 200 });
     }
