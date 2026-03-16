@@ -16,6 +16,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import UpdatePassword from "@/pages/UpdatePassword";
 import HostDashboard from "@/pages/HostDashboard";
 import MyProperties from "@/pages/MyProperties";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -27,9 +28,16 @@ import { PropertyWizard } from "@/components/PropertyWizard";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, loading, isPasswordRecovery } = useAuth();
   if (loading) return null;
+  if (isPasswordRecovery) return <Navigate to="/update-password" replace />;
   return <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />;
+}
+
+function PasswordRecoveryGuard({ children }: { children: JSX.Element }) {
+  const { isPasswordRecovery } = useAuth();
+  if (isPasswordRecovery) return <Navigate to="/update-password" replace />;
+  return children;
 }
 
 function AdminRoute({ children }: { children: JSX.Element }) {
@@ -54,8 +62,9 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route element={<AppLayout />}>
+            <Route element={<PasswordRecoveryGuard><AppLayout /></PasswordRecoveryGuard>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/marketplace/:id" element={<PropertyDetails />} />

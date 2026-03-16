@@ -1,35 +1,25 @@
 
 
-# Fix: Password Recovery Redirects to Dashboard
+# Meus Imóveis + Filtro de Preço + Sidebar
 
-## Problem
+## Alterações
 
-When Supabase sends a PASSWORD_RECOVERY event, the auth listener treats it as a normal login (sets session), so the user lands on `/dashboard` instead of a password update form.
+### 1. `src/pages/MyProperties.tsx` — Already exists, minor tweaks
+The page already exists with proper empty state, CTA, loading, and delete functionality. It's well-implemented. No major changes needed — it already queries `properties` by `owner_id`, shows empty state with "Anunciar Imóvel" CTA, and lists properties with status badges.
 
-## Changes
+### 2. `src/components/SidebarFilters.tsx` — Single-value price slider
+- Change the price slider from a dual-thumb range `[min, max]` to a single-thumb "Preço máximo" slider
+- Label changes from "Preço: R$ X – R$ Y" to "Preço máximo: R$ Y"
+- The slider value becomes a single number; the filter passes `[200, maxValue]` as the priceRange to keep backward compatibility with `useProperties`
 
-### 1. Create `src/pages/UpdatePassword.tsx`
-- New page at `/update-password` with "Nova Senha" and "Confirmar Nova Senha" fields
-- Reuse `getPasswordErrors` / `isPasswordStrong` from `src/lib/passwordValidation.ts`
-- Show/hide password toggles (same pattern as `ResetPassword.tsx`)
-- Submit calls `supabase.auth.updateUser({ password })`, then signs out and redirects to `/login` with a success toast
-- Same visual style as existing auth pages (Card, logo, gradient background)
+### 3. `src/types/index.ts` — No changes needed
+The `PropertyFilters.priceRange` stays as `[number, number]` for backward compatibility.
 
-### 2. Update `src/contexts/AuthContext.tsx`
-- In `onAuthStateChange`, check if `_event === 'PASSWORD_RECOVERY'`
-- When detected, still set the session (needed for `updateUser` to work), but set a flag (e.g. `isPasswordRecovery`) to `true`
-- Export `isPasswordRecovery` from the context so routes can use it
+### 4. `src/components/AppLayout.tsx` — Add "Meus Imóveis" to sidebar
+- Add a `Building2` nav item `{ title: 'Meus Imóveis', url: '/my-properties', icon: Building2 }` to the `navItems` array in the desktop sidebar
+- This makes it always visible in the sidebar (matching the reference screenshot pattern), while the dropdown menu keeps the conditional logic already in place
 
-### 3. Update `src/App.tsx`
-- Add route `<Route path="/update-password" element={<UpdatePassword />} />`
-- Create a wrapper component (or modify `RootRedirect` / `AppLayout`) that checks `isPasswordRecovery` from auth context — if `true`, redirect to `/update-password`
-- Add a `PasswordRecoveryGuard` inside the `AppLayout` route that intercepts authenticated users with the recovery flag before they reach `/dashboard`
-
-### Files
-
-| File | Change |
-|------|--------|
-| `src/pages/UpdatePassword.tsx` | New page — password update form with strong validation |
-| `src/contexts/AuthContext.tsx` | Detect `PASSWORD_RECOVERY` event, expose flag |
-| `src/App.tsx` | Add `/update-password` route + guard to intercept recovery users |
+### Summary of files to edit
+- `src/components/SidebarFilters.tsx` — single-thumb price slider
+- `src/components/AppLayout.tsx` — add "Meus Imóveis" to sidebar navItems
 
