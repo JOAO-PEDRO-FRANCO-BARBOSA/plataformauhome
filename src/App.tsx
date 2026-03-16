@@ -16,6 +16,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
+import UpdatePassword from "@/pages/UpdatePassword";
 import HostDashboard from "@/pages/HostDashboard";
 import MyProperties from "@/pages/MyProperties";
 import AdminDashboard from "@/pages/AdminDashboard";
