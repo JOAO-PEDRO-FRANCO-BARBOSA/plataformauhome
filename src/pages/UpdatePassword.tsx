@@ -37,6 +37,7 @@ export default function UpdatePassword() {
       if (error) throw error;
 
       clearPasswordRecovery();
+      window.history.replaceState(null, '', window.location.pathname);
       await supabase.auth.signOut();
       toast.success('Senha atualizada com sucesso! Faça login para continuar.');
       navigate('/login');

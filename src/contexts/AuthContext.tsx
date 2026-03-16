@@ -20,7 +20,7 @@ interface Profile {
   role: string | null;
 }
 
-interface AuthContextType {
+interface AuthContextType { 
   isLoggedIn: boolean;
   session: Session | null;
   user: User | null;
