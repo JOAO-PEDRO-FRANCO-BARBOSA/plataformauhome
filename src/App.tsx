@@ -28,9 +28,16 @@ import { PropertyWizard } from "@/components/PropertyWizard";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  const { isLoggedIn, loading } = useAuth();
+  const { isLoggedIn, loading, isPasswordRecovery } = useAuth();
   if (loading) return null;
+  if (isPasswordRecovery) return <Navigate to="/update-password" replace />;
   return <Navigate to={isLoggedIn ? "/dashboard" : "/login"} replace />;
+}
+
+function PasswordRecoveryGuard({ children }: { children: JSX.Element }) {
+  const { isPasswordRecovery } = useAuth();
+  if (isPasswordRecovery) return <Navigate to="/update-password" replace />;
+  return children;
 }
 
 function AdminRoute({ children }: { children: JSX.Element }) {
