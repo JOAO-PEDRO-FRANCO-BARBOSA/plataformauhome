@@ -86,7 +86,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "onboarding@resend.dev", // Remetente obrigatório para contas gratuitas
+        from: "Uhome <contato@uhome.app.br>", // Remetente obrigatório para contas gratuitas
         to: ownerEmail,
         subject: subject,
         html: htmlTemplate,
