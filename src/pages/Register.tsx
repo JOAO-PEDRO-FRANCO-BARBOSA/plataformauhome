@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Mail, Lock, User, UserPlus, Loader2, Eye, EyeOff, Chrome } from 'lucide-react';
+import { Mail, Lock, User, UserPlus, Loader2, Eye, EyeOff, Chrome, CheckCircle } from 'lucide-react';
 import logoImg from '@/assets/Logo_Uhome.png';
+import { getPasswordErrors, isPasswordStrong } from '@/lib/passwordValidation';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -18,9 +19,11 @@ export default function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const { register } = useAuth();
-  const navigate = useNavigate();
 
+  const passwordErrors = password.length > 0 ? getPasswordErrors(password) : [];
+  const passwordValid = isPasswordStrong(password);
   const passwordsMatch = password.length > 0 && confirmPassword.length > 0 && password === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,8 +33,8 @@ export default function Register() {
       setError('Preencha todos os campos.');
       return;
     }
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
+    if (!passwordValid) {
+      setError('A senha não atende aos requisitos de segurança.');
       return;
     }
     if (password !== confirmPassword) {
@@ -44,7 +47,7 @@ export default function Register() {
     if (error) {
       setError(error);
     } else {
-      navigate('/dashboard');
+      setSuccess(true);
     }
   };
 
@@ -61,6 +64,32 @@ export default function Register() {
       setError('Não foi possível iniciar o cadastro com Google.');
     }
   };
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+        <Card className="w-full max-w-md shadow-xl border-0">
+          <CardHeader className="text-center space-y-4 pb-2">
+            <div className="flex justify-center">
+              <img src={logoImg} alt="Uhome" className="h-14 w-14 object-contain" />
+            </div>
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-primary">Conta Criada!</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Enviamos um link de confirmação para o seu e-mail. Por favor, verifique sua caixa de entrada (e o spam) para ativar sua conta antes de fazer login.
+            </p>
+            <Button asChild className="w-full" size="lg">
+              <Link to="/login">Ir para Login</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
@@ -95,7 +124,7 @@ export default function Register() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mín. 8 chars, maiúscula, número e especial"
                   className="pl-10 pr-10"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -109,6 +138,13 @@ export default function Register() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {passwordErrors.length > 0 && (
+                <ul className="text-sm text-destructive space-y-0.5 mt-1">
+                  {passwordErrors.map((err) => (
+                    <li key={err}>• {err}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirmar senha</Label>
@@ -136,7 +172,7 @@ export default function Register() {
               <p className="text-sm text-destructive">As senhas precisam ser idênticas.</p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading || !passwordsMatch}>
+            <Button type="submit" className="w-full gap-2" size="lg" disabled={loading || !passwordValid || !passwordsMatch}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
               Criar Conta
             </Button>
