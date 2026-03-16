@@ -81,6 +81,7 @@ function UserMenu() {
   const { profile, logout, user } = useAuth();
   const navigate = useNavigate();
   const [hasProperties, setHasProperties] = useState(false);
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     if (!user) return;
@@ -115,6 +116,11 @@ function UserMenu() {
         {hasProperties && (
           <DropdownMenuItem onClick={() => navigate('/my-properties')} className="cursor-pointer">
             <Building2 className="mr-2 h-4 w-4" /> Meus Imóveis
+          </DropdownMenuItem>
+        )}
+        {isAdmin && (
+          <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
+            <ShieldCheck className="mr-2 h-4 w-4" /> Painel Admin
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
