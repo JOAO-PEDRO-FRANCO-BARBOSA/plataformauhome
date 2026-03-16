@@ -1,25 +1,41 @@
 
 
-# Meus Imóveis + Filtro de Preço + Sidebar
+# 3 Ajustes Frontend: Senha Forte, Confirmação de E-mail, Título SEO
 
-## Alterações
+## Changes
 
-### 1. `src/pages/MyProperties.tsx` — Already exists, minor tweaks
-The page already exists with proper empty state, CTA, loading, and delete functionality. It's well-implemented. No major changes needed — it already queries `properties` by `owner_id`, shows empty state with "Anunciar Imóvel" CTA, and lists properties with status badges.
+### 1. `index.html` — Atualizar title e meta tags
+- `<title>Uhome | Moradia Universitária</title>`
+- Update `og:title` and `twitter:title` to match
+- Update `og:description` and `twitter:description` to "Encontre sua moradia universitária ideal"
 
-### 2. `src/components/SidebarFilters.tsx` — Single-value price slider
-- Change the price slider from a dual-thumb range `[min, max]` to a single-thumb "Preço máximo" slider
-- Label changes from "Preço: R$ X – R$ Y" to "Preço máximo: R$ Y"
-- The slider value becomes a single number; the filter passes `[200, maxValue]` as the priceRange to keep backward compatibility with `useProperties`
+### 2. Shared password validation helper
+Create a small utility (or inline in both components) with a regex-based validator:
+```ts
+const STRONG_PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+```
+Used in both Register and ResetPassword to:
+- Show a red warning below the password input listing unmet rules
+- Disable the submit button when password is invalid
 
-### 3. `src/types/index.ts` — No changes needed
-The `PropertyFilters.priceRange` stays as `[number, number]` for backward compatibility.
+### 3. `src/pages/Register.tsx` — Senha forte + fluxo de confirmação
+- Replace the `password.length < 6` validation with the strong password regex
+- Add real-time password strength feedback below the input (red text listing requirements not met)
+- Update placeholder to "Mínimo 8 caracteres, maiúscula, número e especial"
+- Disable submit button when password doesn't meet requirements OR passwords don't match
+- **Confirmation flow**: Add a `success` state. After successful `register()`, instead of `navigate('/dashboard')`, set `success = true` and render a success card with a CheckCircle icon and the message: "Conta criada! Enviamos um link de confirmação para o seu e-mail. Por favor, verifique sua caixa de entrada (e o spam) para ativar sua conta antes de fazer login." with a "Ir para Login" button
 
-### 4. `src/components/AppLayout.tsx` — Add "Meus Imóveis" to sidebar
-- Add a `Building2` nav item `{ title: 'Meus Imóveis', url: '/my-properties', icon: Building2 }` to the `navItems` array in the desktop sidebar
-- This makes it always visible in the sidebar (matching the reference screenshot pattern), while the dropdown menu keeps the conditional logic already in place
+### 4. `src/pages/ResetPassword.tsx` — Senha forte
+- Same strong password validation as Register
+- Update the `newPassword.length < 6` check to use the regex
+- Add real-time password strength feedback below the input
+- Update placeholder text
 
-### Summary of files to edit
-- `src/components/SidebarFilters.tsx` — single-thumb price slider
-- `src/components/AppLayout.tsx` — add "Meus Imóveis" to sidebar navItems
+### Files
+
+| File | Change |
+|------|--------|
+| `index.html` | Update title + OG/Twitter meta tags |
+| `src/pages/Register.tsx` | Strong password validation + email confirmation success screen |
+| `src/pages/ResetPassword.tsx` | Strong password validation |
 
