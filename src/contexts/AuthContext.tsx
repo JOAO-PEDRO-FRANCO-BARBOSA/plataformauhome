@@ -51,6 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (_event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
       if (session?.user) {
         setTimeout(() => fetchProfile(session.user.id), 0);
       } else {
