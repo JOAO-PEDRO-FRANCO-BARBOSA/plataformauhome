@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DragDropZone } from '@/components/DragDropZone';
 import { ImageLightbox } from '@/components/ImageLightbox';
 import { MediaCarousel } from '@/components/MediaCarousel';
@@ -46,6 +47,8 @@ interface WizardData {
   description: string;
 }
 
+type WizardDraftData = Omit<WizardData, 'photos' | 'docs'>;
+
 const initialData: WizardData = {
   title: '',
   campus: '',
@@ -74,6 +77,7 @@ const initialData: WizardData = {
 };
 
 const STEPS = ['Localização', 'Características', 'Documentação', 'Fotos'];
+const DRAFT_STORAGE_KEY = 'uhome_property_draft';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
 
@@ -370,6 +374,32 @@ export function PropertyWizard() {
   }, [data.docs]);
 
   useEffect(() => {
+    if (isEditMode) return;
+
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!savedDraft) return;
+
+      const parsedDraft = JSON.parse(savedDraft) as Partial<WizardDraftData>;
+      setData((prev) => ({
+        ...prev,
+        ...parsedDraft,
+        photos: [],
+        docs: [],
+      }));
+    } catch {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (isEditMode) return;
+
+    const { photos: _photos, docs: _docs, ...draftData } = data;
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+  }, [data, isEditMode]);
+
+  useEffect(() => {
     const cepDigits = normalizeCep(data.cep);
     if (cepDigits.length !== 8) {
       setLoadingCep(false);
@@ -573,6 +603,8 @@ export function PropertyWizard() {
 
         if (error) throw error;
       }
+
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
 
       setSuccess(true);
     } catch (error: any) {
@@ -793,6 +825,20 @@ export function PropertyWizard() {
         {step === 2 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Documentação e Preço</h3>
+            <Alert className="border-blue-200 bg-blue-50 text-blue-800">
+              <AlertDescription className="flex flex-col gap-2 mt-1">
+                <p>
+                  <strong>Documentação Necessária:</strong> Para garantir a segurança da plataforma, precisamos validar seu anúncio. Por favor, envie:
+                </p>
+                <div className="pl-4 flex flex-col gap-1">
+                  <p>1) Cópia do RG ou CNH do proprietário responsável.</p>
+                  <p>2) Comprovante de propriedade ou posse (Ex: espelho do IPTU recente, conta de luz, escritura ou contrato de locação principal caso seja sublocação).</p>
+                </div>
+                <p className="text-sm opacity-80">
+                  Formatos aceitos: PDF, JPG ou PNG.
+                </p>
+              </AlertDescription>
+            </Alert>
             <DragDropZone
               accept=".pdf,image/*"
               maxFiles={3}
