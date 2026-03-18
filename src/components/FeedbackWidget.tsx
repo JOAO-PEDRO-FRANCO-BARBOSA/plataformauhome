@@ -62,7 +62,7 @@ export function FeedbackWidget() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed right-4 z-50 bottom-[5.5rem] md:bottom-4">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button size="icon" className="h-12 w-12 rounded-full shadow-lg">
