@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { Home, Search, Users, User, Plus, MessageSquare, LogOut, Building2, ShieldCheck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
+import { FeedbackWidget } from './FeedbackWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -166,6 +167,7 @@ export function AppLayout() {
           <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6"><Outlet /></main>
           <AppFooter />
         </div>
+        {isLoggedIn && <FeedbackWidget />}
         {isMobile && <MobileBottomNav />}
       </div>
     </SidebarProvider>
