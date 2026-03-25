@@ -57,10 +57,24 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const { error } = await register(name, email, password);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
+    });
     setLoading(false);
+
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      toast({
+        title: 'E-mail já cadastrado',
+        description: 'Este e-mail já possui uma conta na plataforma. Por favor, faça login ou recupere sua senha.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (error) {
-      setError(error);
+      setError(error.message);
     } else {
       setRegisteredEmail(email);
       setSuccess(true);
