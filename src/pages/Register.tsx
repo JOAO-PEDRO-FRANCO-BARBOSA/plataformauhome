@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Mail, Lock, User, UserPlus, Loader2, Eye, EyeOff, Chrome, CheckCircle } from 'lucide-react';
 import logoImg from '@/assets/Logo_Uhome.png';
 import { getPasswordErrors, isPasswordStrong } from '@/lib/passwordValidation';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -20,11 +21,25 @@ export default function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const { register } = useAuth();
+  const { toast } = useToast();
 
   const passwordErrors = password.length > 0 ? getPasswordErrors(password) : [];
   const passwordValid = isPasswordStrong(password);
   const passwordsMatch = password.length > 0 && confirmPassword.length > 0 && password === confirmPassword;
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setCooldownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +62,44 @@ export default function Register() {
     if (error) {
       setError(error);
     } else {
+      setRegisteredEmail(email);
       setSuccess(true);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!registeredEmail || isResending || cooldownSeconds > 0) return;
+
+    setIsResending(true);
+
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: registeredEmail,
+      });
+
+      if (resendError) {
+        toast({
+          title: 'Erro ao reenviar e-mail',
+          description: resendError.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'E-mail reenviado!',
+        description: 'Verifique sua caixa de entrada e spam.',
+      });
+      setCooldownSeconds(60);
+    } catch (resendError) {
+      toast({
+        title: 'Erro ao reenviar e-mail',
+        description: resendError instanceof Error ? resendError.message : 'Não foi possível reenviar o e-mail.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -82,9 +134,27 @@ export default function Register() {
             <p className="text-sm text-muted-foreground">
               Enviamos um link de confirmação para o seu e-mail. Por favor, verifique sua caixa de entrada (e o spam) para ativar sua conta antes de fazer login.
             </p>
-            <Button asChild className="w-full" size="lg">
-              <Link to="/login">Ir para Login</Link>
-            </Button>
+            <div className="mt-4 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">Não recebeu o e-mail?</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleResendEmail}
+                disabled={isResending || cooldownSeconds > 0 || !registeredEmail}
+              >
+                {isResending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Reenviando...
+                  </>
+                ) : cooldownSeconds > 0 ? (
+                  `Reenviar e-mail em ${cooldownSeconds}s`
+                ) : (
+                  'Reenviar e-mail'
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
