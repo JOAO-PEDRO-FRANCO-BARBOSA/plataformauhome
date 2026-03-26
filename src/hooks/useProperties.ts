@@ -11,50 +11,47 @@ export function useProperties(filters?: PropertyFilters) {
     const fetchApprovedProperties = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        const nowIso = new Date().toISOString();
+
+        // Query 1: Fetch highlighted properties (active featured listings)
+        const { data: highlightedData, error: highlightError } = await supabase
           .from('properties')
           .select('*')
           .eq('status', 'approved')
+          .gt('featured_until', nowIso)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (highlightError) throw highlightError;
 
-        if (data) {
-          const now = Date.now();
-          const isActiveHighlight = (featuredUntil: string | null) =>
-            Boolean(featuredUntil && new Date(featuredUntil).getTime() > now);
+        // Query 2: Fetch regular properties (no highlight or expired)
+        const { data: regularData, error: regularError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('status', 'approved')
+          .or(`featured_until.is.null,featured_until.lte.${nowIso}`)
+          .order('created_at', { ascending: false });
 
-          const sortedRows = [...data].sort((a, b) => {
-            const aFeatured = isActiveHighlight(a.featured_until);
-            const bFeatured = isActiveHighlight(b.featured_until);
+        if (regularError) throw regularError;
 
-            if (aFeatured !== bFeatured) {
-              return aFeatured ? -1 : 1;
-            }
+        const sortedRows = [...(highlightedData || []), ...(regularData || [])];
 
-            const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
-            return bCreated - aCreated;
-          });
-
-          setProperties(sortedRows.map((p) => ({
-            id: p.id,
-            title: p.title,
-            images: (p.images as string[]) ?? [],
-            price: Number(p.price),
-            campus: (p.campus ?? 'Santa Mônica') as Property['campus'],
-            address: p.address ?? '',
-            rooms: p.rooms ?? 1,
-            noFiador: p.no_fiador ?? false,
-            verified: p.verified ?? false,
-            description: p.description ?? '',
-            amenities: (p.amenities as string[]) ?? [],
-            acceptsPet: p.accepts_pet ?? false,
-            contactWhatsApp: p.contact_whatsapp ?? undefined,
-            contactSocial: p.contact_social ?? undefined,
-            featured_until: p.featured_until ?? null,
-          })));
-        }
+        setProperties(sortedRows.map((p) => ({
+          id: p.id,
+          title: p.title,
+          images: (p.images as string[]) ?? [],
+          price: Number(p.price),
+          campus: (p.campus ?? 'Santa Mônica') as Property['campus'],
+          address: p.address ?? '',
+          rooms: p.rooms ?? 1,
+          noFiador: p.no_fiador ?? false,
+          verified: p.verified ?? false,
+          description: p.description ?? '',
+          amenities: (p.amenities as string[]) ?? [],
+          acceptsPet: p.accepts_pet ?? false,
+          contactWhatsApp: p.contact_whatsapp ?? undefined,
+          contactSocial: p.contact_social ?? undefined,
+          featured_until: p.featured_until ?? null,
+        })));
       } catch (error) {
         console.error(error);
         toast.error('Não foi possível carregar os imóveis aprovados.');
