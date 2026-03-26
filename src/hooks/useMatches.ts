@@ -35,12 +35,12 @@ export interface MatchItem {
 function calculateCompatibility(a: Record<string, any>, b: Record<string, any>): number {
   let score = 0;
   const total = 6;
-  if (a.smokes === b.smokes) score++;
-  if (a.likesParties === b.likesParties) score++;
-  if (a.hasPet === b.hasPet) score++;
-  if (a.organized === b.organized) score++;
-  if (a.earlyBird === b.earlyBird) score++;
-  if (a.studyHabit === b.studyHabit) score++;
+  if (a.smokes !== undefined && a.smokes === b.smokes) score++;
+  if (a.likesParties !== undefined && a.likesParties === b.likesParties) score++;
+  if (a.hasPet !== undefined && a.hasPet === b.hasPet) score++;
+  if (a.organized !== undefined && a.organized === b.organized) score++;
+  if (a.earlyBird !== undefined && a.earlyBird === b.earlyBird) score++;
+  if (a.studyHabit !== undefined && a.studyHabit === b.studyHabit) score++;
   return Math.round((score / total) * 100);
 }
 
@@ -149,10 +149,18 @@ export function useMatches() {
   }, []);
 
   const skip = useCallback(async (profileId: string) => {
+    if (!user) return;
+
     setMatches((prev) => prev.map((m) =>
       m.student.id === profileId ? { ...m, status: 'skipped' as const } : m
     ));
-  }, []);
+
+    await supabase.from('connections').insert({
+      requester_id: user.id,
+      receiver_id: profileId,
+      status: 'skipped',
+    });
+  }, [user]);
 
   const pending = matches.filter((m) => m.status === 'pending');
   const connected = matches.filter((m) => m.status === 'connected');

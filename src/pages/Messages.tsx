@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft, Send, GraduationCap, MessageCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -40,6 +41,7 @@ export default function Messages() {
 
   useEffect(() => {
     if (!selectedConnectionId) return;
+    setMessages([]);
     fetchMessages(selectedConnectionId);
 
     // Realtime subscription
@@ -59,18 +61,30 @@ export default function Messages() {
   }, [selectedConnectionId, fetchMessages]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    const timeoutId = setTimeout(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, [messages.length]);
 
   const sendMessage = async () => {
     if (!draft.trim() || !selectedConnectionId || !user || sending) return;
+
+    const messageText = draft.trim();
+    setDraft('');
     setSending(true);
-    await supabase.from('messages').insert({
+    const { error } = await supabase.from('messages').insert({
       connection_id: selectedConnectionId,
       sender_id: user.id,
-      content: draft.trim(),
+      content: messageText,
     });
-    setDraft('');
+
+    if (error) {
+      toast.error('Erro ao enviar mensagem. Tente novamente.');
+      setDraft(messageText);
+    }
+
     setSending(false);
   };
 
