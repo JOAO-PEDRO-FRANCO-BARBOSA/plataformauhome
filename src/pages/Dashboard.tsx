@@ -23,7 +23,7 @@ export default function Dashboard() {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const favorited = properties.filter((p) => favoriteIds.includes(p.id));
-  const firstName = (profile.full_name || 'Estudante').split(' ')[0];
+  const firstName = (profile?.full_name || 'Estudante').split(' ')[0];
 
   const handleOpenDetails = (property: Property) => {
     setSelectedProperty(property);
