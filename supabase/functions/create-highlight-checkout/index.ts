@@ -12,7 +12,7 @@ serve(async (req) => {
   try {
     const body = await req.json()
     const pId = body.propertyId || body.property_id
-    if (!pId) throw new Error("ID do imóvel ausente")
+    if (!pId || pId === 'undefined') throw new Error("ID do imóvel inválido ou ausente")
 
     const accessToken = Deno.env.get('MP_ACCESS_TOKEN')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -28,7 +28,7 @@ serve(async (req) => {
         quantity: 1,
         currency_id: "BRL"
       }],
-      external_reference: String(pId),
+      external_reference: String(pId || ''),
       metadata: {
         property_id: String(pId)
       },
@@ -40,6 +40,8 @@ serve(async (req) => {
       }
       // auto_return removido para evitar erros com localhost
     }
+
+    console.log("PAYLOAD PARA O MP:", JSON.stringify(preferenceData, null, 2));
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
