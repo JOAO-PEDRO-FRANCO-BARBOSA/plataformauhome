@@ -46,6 +46,15 @@ export interface Match {
   status: 'available' | 'pending' | 'connected' | 'skipped';
 }
 
+export interface Message {
+  id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  reply_to_id?: string | null;
+  is_edited?: boolean;
+}
+
 export type Campus = 'Santa Mônica' | 'Umuarama' | 'Pontal' | 'Glória';
 
 export interface PropertyFilters {
