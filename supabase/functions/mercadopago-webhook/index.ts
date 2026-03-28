@@ -88,6 +88,13 @@ async function processWebhook(paymentId: string): Promise<void> {
     return;
   }
 
+  const approvedAt = new Date((payment as any).date_approved || (payment as any).money_release_date || Date.now());
+  const hoursElapsed = (Date.now() - approvedAt.getTime()) / (1000 * 60 * 60);
+  if (hoursElapsed > 24) {
+    console.log(`Pagamento ${paymentId} ignorado. Aprovado há ${Math.round(hoursElapsed)} horas (> 24h) - Replay Attack Prevention.`);
+    return;
+  }
+
   const propertyId = extractPropertyId(payment);
   if (!propertyId) {
     console.error(`Pagamento aprovado ${paymentId} sem propertyId em external_reference/metadata.`);

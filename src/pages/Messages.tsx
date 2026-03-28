@@ -120,6 +120,11 @@ export default function Messages() {
     return elapsed <= fifteenMinutesMs;
   };
 
+  const messagesById = messages.reduce((acc, msg) => {
+    acc[msg.id] = msg;
+    return acc;
+  }, {} as Record<string, Message>);
+
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-8rem)]">
       <h1 className="text-2xl font-bold mb-4">Mensagens</h1>
@@ -189,9 +194,7 @@ export default function Messages() {
                   )}
                   {messages.map((msg) => {
                     const isMe = msg.sender_id === user?.id;
-                    const repliedMessage = msg.reply_to_id
-                      ? messages.find((m) => m.id === msg.reply_to_id)
-                      : null;
+                    const repliedMessage = msg.reply_to_id ? messagesById[msg.reply_to_id] : null;
 
                     return (
                       <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
