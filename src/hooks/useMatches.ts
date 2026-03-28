@@ -30,6 +30,7 @@ export interface MatchItem {
   compatibility: number;
   status: 'available' | 'pending' | 'connected' | 'skipped';
   connectionId?: string;
+  isRequester?: boolean;
 }
 
 function calculateCompatibility(a: Record<string, any>, b: Record<string, any>): number {
@@ -80,7 +81,8 @@ export function useMatches() {
     const connectedIds = new Set<string>();
 
     (connections ?? []).forEach((c) => {
-      const otherId = c.requester_id === user.id ? c.receiver_id : c.requester_id;
+      const isRequester = c.requester_id === user.id;
+      const otherId = isRequester ? c.receiver_id : c.requester_id;
       connectedIds.add(otherId);
       const p = profileMap.get(otherId);
       if (!p) return;
@@ -96,6 +98,7 @@ export function useMatches() {
         compatibility: calculateCompatibility(myHabits, (p.habits as Record<string, any>) || {}),
         status,
         connectionId: c.id,
+        isRequester,
       });
     });
 
@@ -123,7 +126,7 @@ export function useMatches() {
     if (!user) return;
     // Update UI optimistically
     setMatches((prev) => prev.map((m) =>
-      m.student.id === profileId ? { ...m, status: 'pending' as const } : m
+      m.student.id === profileId ? { ...m, status: 'pending' as const, isRequester: true } : m
     ));
     const { data, error } = await supabase.from('connections').insert({
       requester_id: user.id,
@@ -135,7 +138,7 @@ export function useMatches() {
       fetchAll();
     } else if (data) {
       setMatches((prev) => prev.map((m) =>
-        m.student.id === profileId ? { ...m, id: data.id, connectionId: data.id, status: 'pending' as const } : m
+        m.student.id === profileId ? { ...m, id: data.id, connectionId: data.id, status: 'pending' as const, isRequester: true } : m
       ));
     }
   }, [user, fetchAll]);

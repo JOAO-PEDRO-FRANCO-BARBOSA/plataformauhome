@@ -80,10 +80,16 @@ export default function MatchPage() {
                     <p className="font-medium text-sm truncate">{m.student.name}</p>
                     <p className="text-xs text-muted-foreground">Aguardando resposta...</p>
                   </div>
-                  {m.connectionId && (
-                    <Button size="sm" variant="outline" onClick={() => accept(m.connectionId!)}>
-                      <Check className="w-3 h-3 mr-1" /> Aceitar
-                    </Button>
+                  {m.isRequester ? (
+                    <p className="text-xs text-muted-foreground font-medium pr-2">Aguardando resposta...</p>
+                  ) : (
+                    m.connectionId && (
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => accept(m.connectionId!)}>
+                          <Check className="w-3 h-3 mr-1" /> Aceitar
+                        </Button>
+                      </div>
+                    )
                   )}
                 </div>
               ))}
@@ -107,7 +113,7 @@ export default function MatchPage() {
                   <div className="flex items-center gap-1 text-xs font-semibold text-primary">
                     <Percent className="w-3 h-3" />{m.compatibility}%
                   </div>
-                  <Button size="icon" variant="ghost" onClick={() => navigate('/messages')}>
+                  <Button size="icon" variant="ghost" onClick={() => navigate('/messages', { state: { selectedChatId: m.connectionId } })}>
                     <MessageCircle className="w-4 h-4" />
                   </Button>
                 </div>
