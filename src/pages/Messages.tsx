@@ -21,6 +21,7 @@ export default function Messages() {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [deletingConnection, setDeletingConnection] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -105,6 +106,41 @@ export default function Messages() {
     }
 
     setSending(false);
+  };
+
+  const handleDeleteMessage = async (message: Message) => {
+    if (!user || message.sender_id !== user.id || deletingMessageId) return;
+
+    const confirmed = window.confirm('Tem certeza que deseja apagar esta mensagem?');
+    if (!confirmed) return;
+
+    setDeletingMessageId(message.id);
+
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', message.id)
+      .eq('sender_id', user.id);
+
+    if (error) {
+      toast.error('Não foi possível apagar a mensagem.');
+      setDeletingMessageId(null);
+      return;
+    }
+
+    setMessages((prev) => prev.filter((m) => m.id !== message.id));
+
+    if (replyingTo?.id === message.id) {
+      setReplyingTo(null);
+    }
+
+    if (editingMessage?.id === message.id) {
+      setEditingMessage(null);
+      setDraft('');
+    }
+
+    setDeletingMessageId(null);
+    toast.success('Mensagem apagada.');
   };
 
   const handleDeleteConnection = async () => {
@@ -286,6 +322,22 @@ export default function Messages() {
                             >
                               <Reply className="w-3 h-3 mr-1" /> Responder
                             </Button>
+                            {isMe && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteMessage(msg)}
+                                disabled={deletingMessageId === msg.id}
+                              >
+                                {deletingMessageId === msg.id ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3 mr-1" />
+                                )}
+                                Apagar
+                              </Button>
+                            )}
                             {canEditMessage(msg) && (
                               <Button
                                 size="sm"
