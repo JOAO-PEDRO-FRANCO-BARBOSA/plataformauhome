@@ -169,5 +169,5 @@ export function useMatches() {
   const connected = matches.filter((m) => m.status === 'connected');
   const available = matches.filter((m) => m.status === 'available');
 
-  return { matches, pending, connected, available, loading, connect, accept, skip };
+  return { matches, pending, connected, available, loading, connect, accept, skip, refetch: fetchAll };
 }

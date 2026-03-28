@@ -5,20 +5,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Send, GraduationCap, MessageCircle, Reply, Pencil, X } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { ArrowLeft, Send, GraduationCap, MessageCircle, Reply, Pencil, X, Trash2, Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Message } from '@/types';
 
 export default function Messages() {
-  const { connected } = useMatches();
+  const { connected, refetch } = useMatches();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [deletingConnection, setDeletingConnection] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -105,6 +107,29 @@ export default function Messages() {
     setSending(false);
   };
 
+  const handleDeleteConnection = async () => {
+    if (!selectedConnectionId || deletingConnection) return;
+
+    setDeletingConnection(true);
+
+    const { error } = await supabase
+      .from('connections')
+      .delete()
+      .eq('id', selectedConnectionId);
+
+    if (error) {
+      toast.error('Não foi possível desfazer a conexão. Tente novamente.');
+      setDeletingConnection(false);
+      return;
+    }
+
+    toast.success('Conexão desfeita com sucesso.');
+    setSelectedConnectionId(null);
+    setMessages([]);
+    await refetch();
+    setDeletingConnection(false);
+  };
+
   const showChat = isMobile ? !!selectedConnectionId : true;
   const showList = isMobile ? !selectedConnectionId : true;
 
@@ -185,6 +210,34 @@ export default function Messages() {
                       <GraduationCap className="w-3 h-3" />
                       {selectedMatch.student.course}
                     </div>
+                  </div>
+                  <div className="ml-auto">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" className="gap-1.5" disabled={deletingConnection}>
+                          {deletingConnection ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          {deletingConnection ? 'Excluindo...' : 'Desfazer Conexão'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Desfazer conexão e excluir chat?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação remove a conexão e todo o histórico de mensagens desta conversa.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={deletingConnection}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteConnection}
+                            disabled={deletingConnection}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deletingConnection ? 'Excluindo...' : 'Confirmar'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
 
