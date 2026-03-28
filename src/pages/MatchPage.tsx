@@ -38,7 +38,7 @@ export default function MatchPage() {
       priceRange: [400, 800] as [number, number],
     },
     compatibility: current.compatibility,
-    status: 'pending' as const,
+    status: current.status,
   } : null;
 
   return (

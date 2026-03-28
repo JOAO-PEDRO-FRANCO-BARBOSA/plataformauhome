@@ -43,7 +43,7 @@ export interface Match {
   student: StudentProfile;
   compatibility: number; // 0-100
   connectedAt?: string;
-  status: 'pending' | 'connected' | 'skipped';
+  status: 'available' | 'pending' | 'connected' | 'skipped';
 }
 
 export type Campus = 'Santa Mônica' | 'Umuarama' | 'Pontal' | 'Glória';

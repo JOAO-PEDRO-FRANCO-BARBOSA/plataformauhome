@@ -135,8 +135,22 @@ function UserMenu() {
 
 export function AppLayout() {
   const isMobile = useIsMobile();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, loading } = useAuth(); // <-- AGORA SIM! A variável loading está aqui
   const navigate = useNavigate();
+
+  // <-- AGORA SIM! O escudo protetor contra a tela branca
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <img src={logoImg} alt="Uhome" className="h-12 w-12 animate-pulse" />
+          <p className="text-muted-foreground text-sm font-medium animate-pulse">
+            Carregando o Uhome...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider>
