@@ -88,6 +88,8 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_edited: boolean | null
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -95,6 +97,8 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_edited?: boolean | null
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -102,6 +106,8 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_edited?: boolean | null
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -110,6 +116,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
