@@ -67,18 +67,38 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     setDeleting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sessão expirada');
+      // 1. Verifica se a sessão existe
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        await logout();
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
 
+      // 2. Chama a função de forma limpa. 
+      // O supabase-js cuida de injetar o JWT da sessão automaticamente.
       const res = await supabase.functions.invoke('delete-account', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        method: 'POST', // Boa prática para evitar problemas de CORS
       });
 
-      if (res.error) throw new Error(res.error.message || 'Erro ao excluir conta');
+      // 3. Tratamento de erro inteligente (Capturando o 401)
+      if (res.error) {
+        // Se o erro for de autorização, significa que o token local caducou devido
+        // às suas atualizações de segurança no backend.
+        if (res.error.message?.includes('401') || res.error.message?.includes('Unauthorized')) {
+          await logout();
+          navigate('/login');
+          throw new Error('Sua sessão de segurança expirou. Por favor, faça login novamente e tente excluir a conta.');
+        }
+        
+        throw new Error(res.error.message || 'Erro ao tentar excluir a conta.');
+      }
       
+      // 4. Sucesso
       await logout();
       navigate('/login');
-      toast.success('Conta excluída com sucesso.');
+      toast.success('Sua conta foi excluída com sucesso.');
+
     } catch (err: any) {
       toast.error(err.message || 'Erro ao excluir conta');
     } finally {
