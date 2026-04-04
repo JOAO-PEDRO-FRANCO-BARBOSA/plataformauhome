@@ -75,7 +75,7 @@ serve(async (req: Request) => {
     const preferenceData = {
       items: [{
         title: "Destaque de Anúncio - Uhome",
-        unit_price: 1.00, // Substitua pelo valor real se necessário (ex: 29.90)
+        unit_price: 29.90, // Substitua pelo valor real se necessário (ex: 29.90)
         quantity: 1,
         currency_id: "BRL"
       }],
