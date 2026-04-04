@@ -158,13 +158,13 @@ const Index = () => {
       </main>
 
       <footer className="border-t border-slate-200 bg-white/90">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-6 px-4 py-8 sm:flex-row sm:items-center sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <img src={logoUhome} alt="Uhome" className="h-20 w-20 object-contain" />
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-6 px-4 py-8 sm:px-6 md:flex-row md:items-center lg:px-8">
+          <div className="flex shrink-0 items-center gap-2">
+            <img src={logoUhome} alt="Uhome" className="h-14 w-14 object-contain sm:h-16 sm:w-16 lg:h-20 lg:w-20" />
             <span className="font-bold text-lg text-purple-600">Uhome</span>
           </div>
-          <p className="text-base font-medium text-slate-500 sm:text-lg">{currentYear} Uhome. Todos os direitos reservados.</p>
-          <div className="flex items-center gap-4">
+          <p className="text-base font-medium text-slate-500 sm:text-lg md:flex-1 md:px-4 md:text-center">{currentYear} Uhome. Todos os direitos reservados.</p>
+          <div className="flex shrink-0 items-center gap-4">
             <a href="mailto:projetouhome@gmail.com" target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full bg-purple-100 p-3.5 text-purple-600 transition hover:bg-purple-200" aria-label="E-mail">
               <Mail className="h-6 w-6" />
             </a>
