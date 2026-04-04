@@ -25,6 +25,7 @@ import AdminPropertyReview from "@/pages/AdminPropertyReview";
 import UserPropertyDetails from "@/pages/UserPropertyDetails";
 import NotFound from "./pages/NotFound";
 import { PropertyWizard } from "@/components/PropertyWizard";
+import AuthCallback from './pages/AuthCallback';
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
