@@ -35,11 +35,13 @@ function PasswordRecoveryGuard({ children }: { children: JSX.Element }) {
 }
 
 function AdminRoute({ children }: { children: JSX.Element }) {
-  const { isLoggedIn, loading, profile } = useAuth();
+  const { isLoggedIn, loading, profile, session } = useAuth();
 
   if (loading) return null;
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
-  if (profile?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+  if (!isLoggedIn || !session?.user) return <Navigate to="/login" replace />;
+  if (!profile || profile.id !== session.user.id || profile.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return children;
 }

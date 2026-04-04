@@ -49,6 +49,80 @@ interface WizardData {
 
 type WizardDraftData = Omit<WizardData, 'photos' | 'docs'>;
 
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function asStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  if (!value.every((item) => typeof item === 'string')) return undefined;
+  return value;
+}
+
+function parseDraft(value: string): Partial<WizardDraftData> | null {
+  const parsed = JSON.parse(value) as unknown;
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+
+  const source = parsed as Record<string, unknown>;
+  const draft: Partial<WizardDraftData> = {};
+
+  const title = asString(source.title);
+  const campus = asString(source.campus);
+  const cep = asString(source.cep);
+  const street = asString(source.street);
+  const addressNumber = asString(source.addressNumber);
+  const addressComplement = asString(source.addressComplement);
+  const neighborhood = asString(source.neighborhood);
+  const city = asString(source.city);
+  const state = asString(source.state);
+  const cepValidated = asBoolean(source.cepValidated);
+  const rooms = asNumber(source.rooms);
+  const bathrooms = asNumber(source.bathrooms);
+  const amenities = asStringArray(source.amenities);
+  const noFiador = asBoolean(source.noFiador);
+  const verified = asBoolean(source.verified);
+  const price = asString(source.price);
+  const ownerCpfCnpj = asString(source.ownerCpfCnpj);
+  const ownerEmail = asString(source.ownerEmail);
+  const contactWhatsApp = asString(source.contactWhatsApp);
+  const contactSocial = asString(source.contactSocial);
+  const acceptsPet = asBoolean(source.acceptsPet);
+  const description = asString(source.description);
+
+  if (title !== undefined) draft.title = title;
+  if (campus !== undefined) draft.campus = campus as Campus | '';
+  if (cep !== undefined) draft.cep = cep;
+  if (street !== undefined) draft.street = street;
+  if (addressNumber !== undefined) draft.addressNumber = addressNumber;
+  if (addressComplement !== undefined) draft.addressComplement = addressComplement;
+  if (neighborhood !== undefined) draft.neighborhood = neighborhood;
+  if (city !== undefined) draft.city = city;
+  if (state !== undefined) draft.state = state;
+  if (cepValidated !== undefined) draft.cepValidated = cepValidated;
+  if (rooms !== undefined) draft.rooms = Math.max(1, Math.floor(rooms));
+  if (bathrooms !== undefined) draft.bathrooms = Math.max(1, Math.floor(bathrooms));
+  if (amenities !== undefined) draft.amenities = amenities;
+  if (noFiador !== undefined) draft.noFiador = noFiador;
+  if (verified !== undefined) draft.verified = verified;
+  if (price !== undefined) draft.price = price;
+  if (ownerCpfCnpj !== undefined) draft.ownerCpfCnpj = ownerCpfCnpj;
+  if (ownerEmail !== undefined) draft.ownerEmail = ownerEmail;
+  if (contactWhatsApp !== undefined) draft.contactWhatsApp = contactWhatsApp;
+  if (contactSocial !== undefined) draft.contactSocial = contactSocial;
+  if (acceptsPet !== undefined) draft.acceptsPet = acceptsPet;
+  if (description !== undefined) draft.description = description;
+
+  return draft;
+}
+
 const initialData: WizardData = {
   title: '',
   campus: '',
@@ -380,7 +454,12 @@ export function PropertyWizard() {
       const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (!savedDraft) return;
 
-      const parsedDraft = JSON.parse(savedDraft) as Partial<WizardDraftData>;
+      const parsedDraft = parseDraft(savedDraft);
+      if (!parsedDraft) {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        return;
+      }
+
       setData((prev) => ({
         ...prev,
         ...parsedDraft,

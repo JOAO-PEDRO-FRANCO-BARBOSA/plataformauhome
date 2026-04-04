@@ -1,15 +1,18 @@
 project_id = "qvhrqfqlcnjbylpopkkn"
 
 [functions.delete-account]
-verify_jwt = false
+verify_jwt = true
 
 [functions.notify-property-status]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-highlight-checkout]
 verify_jwt = true
 
 [functions.stripe-webhook]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
 verify_jwt = false
 
 [functions.send-feedback]

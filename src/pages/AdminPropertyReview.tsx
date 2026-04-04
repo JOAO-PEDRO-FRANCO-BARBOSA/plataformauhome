@@ -139,6 +139,21 @@ export default function AdminPropertyReview() {
 
       if (error) throw error;
 
+      const notifyPayload = {
+        propertyId: id,
+        status: nextStatus,
+        rejectionReason: reason ?? null,
+      };
+
+      const { error: notifyError } = await supabase.functions.invoke('notify-property-status', {
+        body: notifyPayload,
+      });
+
+      if (notifyError) {
+        console.error('Erro ao notificar proprietário:', notifyError.message);
+        toast.warning('Status atualizado, mas houve falha no envio do e-mail.');
+      }
+
       toast.success(nextStatus === 'approved' ? 'Imóvel aprovado com sucesso!' : 'Imóvel rejeitado.');
       navigate('/admin');
     } catch (error) {
