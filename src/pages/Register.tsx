@@ -60,7 +60,11 @@ export default function Register() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: { 
+        // Força o redirecionamento para o callback após confirmar o e-mail
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { full_name: name } 
+      },
     });
     setLoading(false);
 
