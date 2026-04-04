@@ -1,13 +1,13 @@
 project_id = "qvhrqfqlcnjbylpopkkn"
 
 [functions.delete-account]
-verify_jwt = true
+verify_jwt = false
 
 [functions.notify-property-status]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-highlight-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
@@ -17,7 +17,7 @@ verify_jwt = false
 
 [functions.send-feedback]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/send-feedback/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx

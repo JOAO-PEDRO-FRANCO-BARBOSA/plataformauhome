@@ -40,7 +40,8 @@ export default function Login() {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        // Altere para uma rota de callback
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

@@ -8,132 +8,75 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
+  // 1. Liberação do CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Method not allowed" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 405,
-      },
-    );
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 405,
+    });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new Response(
-        JSON.stringify({ error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500,
-        },
-      );
-    }
-
+    // 2. Extrair o Header de Autorização
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
+      throw new Error("Missing Authorization header");
     }
 
-    const token = authHeader.replace("Bearer ", "").trim();
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: "Invalid bearer token" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
+    // Variáveis de ambiente automáticas do Supabase
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+      throw new Error("Faltam variáveis de ambiente críticas no servidor.");
     }
 
-    const supabaseAdmin = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
+    // 3. CLIENTE DO USUÁRIO: Usado APENAS para verificar de quem é o token
+    const supabaseClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+
+    // Se o token for inválido, paramos aqui
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Token de usuário inválido ou expirado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 4. CLIENTE ADMIN: Usado APENAS para executar a exclusão com superpoderes
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
       },
-    );
+    });
 
-    const {
-      data: { user: requesterUser },
-      error: requesterError,
-    } = await supabaseAdmin.auth.getUser(token);
-
-    if (requesterError || !requesterUser) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired token" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        },
-      );
-    }
-
-    let requestBody: { userId?: string } = {};
-    try {
-      requestBody = await req.json();
-    } catch {
-      requestBody = {};
-    }
-
-    const requestedUserId = requestBody.userId?.trim();
-    const userId = requestedUserId || requesterUser.id;
-
-    // Safety guard: non-admin users can only delete themselves.
-    if (requestedUserId && requestedUserId !== requesterUser.id) {
-      return new Response(
-        JSON.stringify({ error: "Forbidden: you can only delete your own account" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403,
-        },
-      );
-    }
-
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    // 5. Excluir o usuário (garantimos que ele só deleta a si mesmo porque pegamos o ID do próprio token)
+    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
     if (deleteError) {
-      return new Response(
-        JSON.stringify({ error: deleteError.message || "Database error deleting user" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        },
-      );
+      throw new Error(deleteError.message || "Erro no banco ao deletar usuário");
     }
 
-    return new Response(
-      JSON.stringify({ success: true, userId, message: "User deleted successfully" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      },
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Internal server error";
-    console.error("delete-account error:", message);
+    // 6. Sucesso!
+    return new Response(JSON.stringify({ success: true, message: "User deleted successfully" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    return new Response(
-      JSON.stringify({ error: message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      },
-    );
+  } catch (error: any) {
+    console.error("delete-account error:", error.message);
+    return new Response(JSON.stringify({ error: error.message || "Internal server error" }), {
+      status: 400, // Alterado para 400 para diferenciar dos 401 do Kong no frontend
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
