@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
@@ -56,28 +56,30 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/signup" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/update-password" element={<UpdatePassword />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route element={<PasswordRecoveryGuard><AppLayout /></PasswordRecoveryGuard>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/marketplace/:id" element={<PropertyDetails />} />
-              <Route path="/match" element={<MatchPage />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/host" element={<HostDashboard />} />
-              <Route path="/host/new" element={<PropertyWizard />} />
-              <Route path="/host/edit/:id" element={<PropertyWizard />} />
-              <Route path="/my-properties" element={<MyProperties />} />
-              <Route path="/my-properties/:id" element={<UserPropertyDetails />} />
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="/admin/properties/:id" element={<AdminRoute><AdminPropertyReview /></AdminRoute>} />
+            <Route element={<PasswordRecoveryGuard><Outlet /></PasswordRecoveryGuard>}>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/signup" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route element={<AppLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/marketplace/:id" element={<PropertyDetails />} />
+                <Route path="/match" element={<MatchPage />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/host" element={<HostDashboard />} />
+                <Route path="/host/new" element={<PropertyWizard />} />
+                <Route path="/host/edit/:id" element={<PropertyWizard />} />
+                <Route path="/my-properties" element={<MyProperties />} />
+                <Route path="/my-properties/:id" element={<UserPropertyDetails />} />
+                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                <Route path="/admin/properties/:id" element={<AdminRoute><AdminPropertyReview /></AdminRoute>} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
