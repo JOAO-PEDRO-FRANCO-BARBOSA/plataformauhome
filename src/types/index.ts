@@ -36,6 +36,8 @@ export interface Property {
   contactWhatsApp?: string;
   contactSocial?: string;
   featured_until?: string | null;
+  property_type?: string;
+  location_neighborhood?: string;
 }
 
 export interface Match {

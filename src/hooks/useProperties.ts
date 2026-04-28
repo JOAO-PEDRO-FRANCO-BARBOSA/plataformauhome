@@ -3,7 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { Property, PropertyFilters } from '@/types';
 import { toast } from 'sonner';
 
-export function useProperties(filters?: PropertyFilters) {
+export interface PropertyQueryFilters {
+  campus?: string | 'todos';
+  priceRange?: [number, number];
+  propertyType?: string;
+  locationNeighborhood?: string;
+  rooms?: number | null;
+  acceptsPet?: boolean | null;
+}
+
+export function useProperties(filters?: PropertyQueryFilters | PropertyFilters) {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +25,7 @@ export function useProperties(filters?: PropertyFilters) {
         // Query 1: Fetch highlighted properties (active featured listings)
         const { data: highlightedData, error: highlightError } = await supabase
           .from('properties')
-          .select('*')
+          .select('*, property_type, location_neighborhood')
           .eq('status', 'approved')
           .gt('featured_until', nowIso)
           .order('created_at', { ascending: false });
@@ -26,7 +35,7 @@ export function useProperties(filters?: PropertyFilters) {
         // Query 2: Fetch regular properties (no highlight or expired)
         const { data: regularData, error: regularError } = await supabase
           .from('properties')
-          .select('*')
+          .select('*, property_type, location_neighborhood')
           .eq('status', 'approved')
           .or(`featured_until.is.null,featured_until.lte.${nowIso}`)
           .order('created_at', { ascending: false });
@@ -51,6 +60,8 @@ export function useProperties(filters?: PropertyFilters) {
           contactWhatsApp: p.contact_whatsapp ?? undefined,
           contactSocial: p.contact_social ?? undefined,
           featured_until: p.featured_until ?? null,
+          property_type: p.property_type ?? undefined,
+          location_neighborhood: p.location_neighborhood ?? undefined,
         })));
       } catch (error) {
         console.error(error);
@@ -65,11 +76,25 @@ export function useProperties(filters?: PropertyFilters) {
 
   const filtered = useMemo(() => {
     if (!filters) return properties;
+    
+    const typedFilters = filters as PropertyQueryFilters;
+    
     return properties.filter((p) => {
-      if (filters.campus !== 'todos' && p.campus !== filters.campus) return false;
-      if (p.price < filters.priceRange[0] || p.price > filters.priceRange[1]) return false;
-      if (filters.rooms && p.rooms !== filters.rooms) return false;
-      if (filters.acceptsPet === true && !p.acceptsPet) return false;
+      if (typedFilters.campus && typedFilters.campus !== 'todos' && p.campus !== typedFilters.campus) return false;
+      
+      if (typedFilters.priceRange) {
+        if (p.price < typedFilters.priceRange[0] || p.price > typedFilters.priceRange[1]) return false;
+      }
+      
+      if (typedFilters.propertyType && typedFilters.propertyType !== 'all' && p.property_type !== typedFilters.propertyType) return false;
+      
+      if (typedFilters.locationNeighborhood && p.location_neighborhood) {
+        const searchTerm = typedFilters.locationNeighborhood.toLowerCase();
+        if (!p.location_neighborhood.toLowerCase().includes(searchTerm)) return false;
+      }
+      
+      if (typedFilters.rooms && p.rooms !== typedFilters.rooms) return false;
+      if (typedFilters.acceptsPet === true && !p.acceptsPet) return false;
       return true;
     });
   }, [properties, filters]);

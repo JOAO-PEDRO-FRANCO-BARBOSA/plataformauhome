@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { DragDropZone } from '@/components/DragDropZone';
 import { ImageLightbox } from '@/components/ImageLightbox';
 import { MediaCarousel } from '@/components/MediaCarousel';
@@ -21,6 +21,7 @@ const AMENITIES = ['Wi-Fi', 'Garagem', 'Mobiliado', 'Lavanderia', 'Academia', 'P
 const CAMPUSES: Campus[] = ['Santa Mônica', 'Umuarama', 'Pontal', 'Glória'];
 
 interface WizardData {
+  listing_type: 'alugar' | 'vender';
   title: string;
   campus: Campus | '';
   cep: string;
@@ -35,7 +36,6 @@ interface WizardData {
   bathrooms: number;
   amenities: string[];
   photos: File[];
-  docs: File[];
   noFiador: boolean;
   verified: boolean;
   price: string;
@@ -47,7 +47,7 @@ interface WizardData {
   description: string;
 }
 
-type WizardDraftData = Omit<WizardData, 'photos' | 'docs'>;
+type WizardDraftData = Omit<WizardData, 'photos'>;
 
 function asString(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
@@ -75,6 +75,7 @@ function parseDraft(value: string): Partial<WizardDraftData> | null {
   const draft: Partial<WizardDraftData> = {};
 
   const title = asString(source.title);
+  const listingType = asString(source.listing_type);
   const campus = asString(source.campus);
   const cep = asString(source.cep);
   const street = asString(source.street);
@@ -97,6 +98,7 @@ function parseDraft(value: string): Partial<WizardDraftData> | null {
   const acceptsPet = asBoolean(source.acceptsPet);
   const description = asString(source.description);
 
+  if (listingType === 'alugar' || listingType === 'vender') draft.listing_type = listingType;
   if (title !== undefined) draft.title = title;
   if (campus !== undefined) draft.campus = campus as Campus | '';
   if (cep !== undefined) draft.cep = cep;
@@ -124,6 +126,7 @@ function parseDraft(value: string): Partial<WizardDraftData> | null {
 }
 
 const initialData: WizardData = {
+  listing_type: 'alugar',
   title: '',
   campus: '',
   cep: '',
@@ -138,7 +141,6 @@ const initialData: WizardData = {
   bathrooms: 1,
   amenities: [],
   photos: [],
-  docs: [],
   noFiador: false,
   verified: false,
   price: '',
@@ -150,7 +152,7 @@ const initialData: WizardData = {
   description: '',
 };
 
-const STEPS = ['Localização', 'Características', 'Documentação', 'Fotos'];
+const STEPS = ['Verificação', 'Tipo', 'Imagens', 'Descrição', 'Preço', 'Preço e Contato'];
 const DRAFT_STORAGE_KEY = 'uhome_property_draft';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
@@ -320,9 +322,12 @@ function parseComposedAddress(address: string | null) {
   };
 }
 
-function validateStep(step: number, data: WizardData): string | null {
+function validateStep(step: number, data: WizardData, otpCode: string): string | null {
   switch (step) {
     case 0:
+      if (otpCode.replace(/\D/g, '').length !== 8) return 'Digite o código OTP de 8 dígitos';
+      return null;
+    case 1:
       if (!data.title.trim()) return 'Preencha o título do anúncio';
       if (!isValidCep(data.cep)) return 'Informe um CEP válido';
       if (!data.cepValidated) return 'CEP não encontrado. Verifique e tente novamente';
@@ -332,46 +337,55 @@ function validateStep(step: number, data: WizardData): string | null {
       if (!data.city.trim()) return 'Preencha a cidade';
       if (!data.state.trim()) return 'Preencha o estado';
       if (!data.campus) return 'Selecione o campus mais próximo';
-      return null;
-    case 1:
       if (data.rooms < 1) return 'Informe a quantidade de quartos';
       if (data.bathrooms < 1) return 'Informe a quantidade de banheiros';
       if (data.amenities.length < 1) return 'Selecione ao menos 1 comodidade';
-      if (!data.description.trim()) return 'Preencha a descrição do imóvel';
       return null;
     case 2:
-      if (data.docs.length < 1) return 'Envie ao menos 1 documento (contrato/comprovante)';
+      if (data.photos.length < 1) return 'Envie ao menos 1 foto do imóvel';
+      return null;
+    case 3:
+      if (!data.description.trim()) return 'Preencha a descrição do imóvel';
+      return null;
+    case 4:
       if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
+      return null;
+    case 5:
       if (!data.ownerCpfCnpj.trim()) return 'Informe CPF/CNPJ do proprietário';
       if (!isValidCpfCnpj(data.ownerCpfCnpj)) return 'CPF/CNPJ inválido. Revise o documento informado';
       if (!data.ownerEmail.trim()) return 'Informe o e-mail do proprietário';
       if (!isValidEmail(data.ownerEmail)) return 'E-mail inválido. Revise o formato informado';
       if (!data.contactWhatsApp.trim()) return 'Informe o WhatsApp de contato';
       if (!isValidWhatsapp(data.contactWhatsApp)) return 'WhatsApp inválido. Use o formato (00) 00000-0000';
-      return null;
-    case 3:
-      if (data.photos.length < 1) return 'Envie ao menos 1 foto do imóvel';
       return null;
     default:
       return null;
   }
 }
 
-function validateStepForEdit(step: number, data: WizardData): string | null {
+function validateStepForEdit(step: number, data: WizardData, otpCode: string): string | null {
   switch (step) {
     case 0:
+      if (otpCode.replace(/\D/g, '').length !== 8) return 'Digite o código OTP de 8 dígitos';
+      return null;
     case 1:
-      return validateStep(step, data);
+      return validateStep(step, data, otpCode);
     case 2:
+      if (data.photos.length < 1) return 'Envie ao menos 1 foto do imóvel';
+      return null;
+    case 3:
+      if (!data.description.trim()) return 'Preencha a descrição do imóvel';
+      return null;
+    case 4:
       if (!data.price || Number(data.price) <= 0) return 'Informe o preço mensal';
+      return null;
+    case 5:
       if (!data.ownerCpfCnpj.trim()) return 'Informe CPF/CNPJ do proprietário';
       if (!isValidCpfCnpj(data.ownerCpfCnpj)) return 'CPF/CNPJ inválido. Revise o documento informado';
       if (!data.ownerEmail.trim()) return 'Informe o e-mail do proprietário';
       if (!isValidEmail(data.ownerEmail)) return 'E-mail inválido. Revise o formato informado';
       if (!data.contactWhatsApp.trim()) return 'Informe o WhatsApp de contato';
       if (!isValidWhatsapp(data.contactWhatsApp)) return 'WhatsApp inválido. Use o formato (00) 00000-0000';
-      return null;
-    case 3:
       return null;
     default:
       return null;
@@ -382,6 +396,10 @@ export function PropertyWizard() {
   const { id: editId } = useParams<{ id: string }>();
   const isEditMode = Boolean(editId);
   const [step, setStep] = useState(0);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
   const [data, setData] = useState<WizardData>(initialData);
   const [publishing, setPublishing] = useState(false);
   const [loadingProperty, setLoadingProperty] = useState(false);
@@ -389,9 +407,7 @@ export function PropertyWizard() {
   const [cepLookupError, setCepLookupError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [existingDocumentPaths, setExistingDocumentPaths] = useState<string[]>([]);
   const [photoPreviewUrls, setPhotoPreviewUrls] = useState<string[]>([]);
-  const [docPreviewUrls, setDocPreviewUrls] = useState<string[]>([]);
   const [previewLightboxOpen, setPreviewLightboxOpen] = useState(false);
   const [previewLightboxIndex, setPreviewLightboxIndex] = useState(0);
   const [previewLightboxImages, setPreviewLightboxImages] = useState<string[]>([]);
@@ -408,25 +424,24 @@ export function PropertyWizard() {
         : [...prev.amenities, amenity],
     }));
 
-  const stepError = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
+  const stepError = isEditMode ? validateStepForEdit(step, data, otpCode) : validateStep(step, data, otpCode);
 
   const ownerDocumentError =
-    step === 2 && data.ownerCpfCnpj.trim() && !isValidCpfCnpj(data.ownerCpfCnpj)
+    step === 5 && data.ownerCpfCnpj.trim() && !isValidCpfCnpj(data.ownerCpfCnpj)
       ? 'CPF/CNPJ inválido.'
       : null;
 
   const ownerEmailError =
-    step === 2 && data.ownerEmail.trim() && !isValidEmail(data.ownerEmail)
+    step === 5 && data.ownerEmail.trim() && !isValidEmail(data.ownerEmail)
       ? 'Formato de e-mail inválido.'
       : null;
 
   const ownerWhatsAppError =
-    step === 2 && data.contactWhatsApp.trim() && !isValidWhatsapp(data.contactWhatsApp)
+    step === 5 && data.contactWhatsApp.trim() && !isValidWhatsapp(data.contactWhatsApp)
       ? 'WhatsApp inválido.'
       : null;
 
   const previewPhotoImages = useMemo(() => [...existingImages, ...photoPreviewUrls], [existingImages, photoPreviewUrls]);
-  const previewDocImages = useMemo(() => docPreviewUrls, [docPreviewUrls]);
 
   useEffect(() => {
     const nextPreviewUrls = data.photos.map((photo) => URL.createObjectURL(photo));
@@ -436,16 +451,6 @@ export function PropertyWizard() {
       nextPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [data.photos]);
-
-  useEffect(() => {
-    const imageDocs = data.docs.filter((doc) => doc.type.startsWith('image/'));
-    const nextPreviewUrls = imageDocs.map((doc) => URL.createObjectURL(doc));
-    setDocPreviewUrls(nextPreviewUrls);
-
-    return () => {
-      nextPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [data.docs]);
 
   useEffect(() => {
     if (isEditMode) return;
@@ -464,7 +469,6 @@ export function PropertyWizard() {
         ...prev,
         ...parsedDraft,
         photos: [],
-        docs: [],
       }));
     } catch {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -474,7 +478,7 @@ export function PropertyWizard() {
   useEffect(() => {
     if (isEditMode) return;
 
-    const { photos: _photos, docs: _docs, ...draftData } = data;
+    const { photos: _photos, ...draftData } = data;
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
   }, [data, isEditMode]);
 
@@ -549,7 +553,7 @@ export function PropertyWizard() {
       try {
         const { data: existingProperty, error } = await supabase
           .from('properties')
-          .select('id, owner_id, title, address, campus, rooms, bathrooms, amenities, images, document_paths, no_fiador, price, owner_cpf_cnpj, owner_email, contact_whatsapp, contact_social, accepts_pet, description')
+          .select('id, owner_id, title, listing_type, address, campus, rooms, bathrooms, amenities, images, no_fiador, price, owner_cpf_cnpj, owner_email, contact_whatsapp, contact_social, accepts_pet, description')
           .eq('id', editId)
           .eq('owner_id', user.id)
           .single();
@@ -560,6 +564,7 @@ export function PropertyWizard() {
 
         setData((prev) => ({
           ...prev,
+          listing_type: existingProperty.listing_type === 'vender' ? 'vender' : 'alugar',
           title: existingProperty.title ?? '',
           cep: parsedAddress.cep,
           street: parsedAddress.street,
@@ -584,7 +589,6 @@ export function PropertyWizard() {
         }));
 
         setExistingImages(existingProperty.images ?? []);
-        setExistingDocumentPaths(existingProperty.document_paths ?? []);
       } catch (error: any) {
         toast.error(error.message || 'Não foi possível carregar o anúncio para edição.');
         navigate('/my-properties');
@@ -596,17 +600,8 @@ export function PropertyWizard() {
     fetchPropertyForEdit();
   }, [isEditMode, editId, user, navigate]);
 
-  const handleNext = () => {
-    const error = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    setStep((prev) => prev + 1);
-  };
-
   const handlePublish = async () => {
-    const error = isEditMode ? validateStepForEdit(step, data) : validateStep(step, data);
+    const error = isEditMode ? validateStepForEdit(step, data, otpCode) : validateStep(step, data, otpCode);
     if (error) {
       toast.error(error);
       return;
@@ -630,16 +625,8 @@ export function PropertyWizard() {
         }
       }
 
-      const documentPaths: string[] = [...existingDocumentPaths];
-      for (const doc of data.docs) {
-        const path = `${user.id}/${Date.now()}-${doc.name}`;
-        const { error } = await supabase.storage.from('property-documents').upload(path, doc);
-        if (!error) {
-          documentPaths.push(path);
-        }
-      }
-
       const payload = {
+        listing_type: data.listing_type,
         title: data.title,
         address: composeAddress(data),
         campus: data.campus || null,
@@ -653,7 +640,7 @@ export function PropertyWizard() {
         owner_email: data.ownerEmail.trim().toLowerCase(),
         contact_whatsapp: normalizePhone(data.contactWhatsApp),
         contact_social: data.contactSocial.trim() || null,
-        document_paths: documentPaths,
+        document_paths: [],
         accepts_pet: data.acceptsPet,
         description: data.description,
       };
@@ -664,7 +651,7 @@ export function PropertyWizard() {
           .update({
             ...payload,
             status: 'pending',
-            validation_status: 'pending_docs',
+            validation_status: 'pending',
             rejection_reason: null,
           })
           .eq('id', editId)
@@ -677,7 +664,7 @@ export function PropertyWizard() {
           ...payload,
           verified: false,
           status: 'pending',
-          validation_status: 'pending_docs',
+          validation_status: 'pending',
         });
 
         if (error) throw error;
@@ -691,6 +678,83 @@ export function PropertyWizard() {
     } finally {
       setPublishing(false);
     }
+  };
+
+  const handleSendOtp = async () => {
+    if (!otpEmail.trim() || !isValidEmail(otpEmail)) {
+      toast.error('Informe um e-mail válido');
+      return;
+    }
+
+    const normalizedEmail = otpEmail.trim().toLowerCase();
+    setOtpLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+      });
+
+      if (error) throw error;
+
+      setOtpSent(true);
+      toast.success('Código OTP enviado para o e-mail. Verifique sua caixa de entrada.');
+    } catch (error: any) {
+      toast.error('Erro ao enviar OTP: ' + (error.message || 'Tente novamente'));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (): Promise<boolean> => {
+    const otpToken = otpCode.replace(/\D/g, '');
+
+    if (otpToken.length !== 8) {
+      toast.error('Digite o código OTP de 8 dígitos');
+      return false;
+    }
+
+    const normalizedEmail = otpEmail.trim().toLowerCase();
+    setOtpLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: otpToken,
+        type: 'email',
+      });
+
+      if (error) throw error;
+
+      if (!data.session) {
+        toast.error('Sessão não estabelecida. Tente novamente.');
+        return false;
+      }
+
+      toast.success('Verificação de OTP realizada com sucesso!');
+      setOtpCode('');
+      return true;
+    } catch (error: any) {
+      toast.error('Código inválido ou expirado. Tente novamente.');
+      setOtpCode('');
+      return false;
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleNext = async () => {
+    // Step 0: Verify OTP before proceeding
+    if (step === 0) {
+      const otpVerified = await handleVerifyOtp();
+      if (!otpVerified) return;
+      setStep((prev) => prev + 1);
+      return;
+    }
+
+    const error = isEditMode ? validateStepForEdit(step, data, otpCode) : validateStep(step, data, otpCode);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    setStep((prev) => prev + 1);
   };
 
   if (loadingProperty) {
@@ -738,7 +802,78 @@ export function PropertyWizard() {
       <div className="min-h-[320px]">
         {step === 0 && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Localização do Imóvel</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={data.listing_type === 'alugar' ? 'default' : 'outline'}
+                onClick={() => setData((prev) => ({ ...prev, listing_type: 'alugar' }))}
+              >
+                Quero Alugar
+              </Button>
+              <Button
+                type="button"
+                variant={data.listing_type === 'vender' ? 'default' : 'outline'}
+                onClick={() => setData((prev) => ({ ...prev, listing_type: 'vender' }))}
+              >
+                Quero Vender
+              </Button>
+            </div>
+            <h3 className="text-lg font-semibold">Verificação de E-mail com OTP</h3>
+            <p className="text-sm text-muted-foreground">Informe o e-mail para receber o código de verificação (OTP).</p>
+
+            {!otpSent ? (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="otpEmail">E-mail para Verificação *</Label>
+                  <Input
+                    id="otpEmail"
+                    type="email"
+                    placeholder="seu.email@example.com"
+                    value={otpEmail}
+                    onChange={(event) => setOtpEmail(event.target.value)}
+                    disabled={otpLoading}
+                  />
+                </div>
+                <Button
+                  onClick={handleSendOtp}
+                  disabled={otpLoading || !otpEmail.trim()}
+                  className="w-full"
+                >
+                  {otpLoading ? 'Enviando...' : 'Enviar Código OTP'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Código OTP enviado para: <span className="text-primary font-semibold">{otpEmail}</span></p>
+                <div className="space-y-2">
+                  <Label htmlFor="otpCode">Digite o Código OTP (8 dígitos) *</Label>
+                  <InputOTP maxLength={8} value={otpCode} onChange={setOtpCode} disabled={otpLoading}>
+                    <InputOTPGroup className="gap-2">
+                      {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+                        <InputOTPSlot key={index} index={index} className="h-12 w-12 rounded-md border" />
+                      ))}
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setOtpSent(false);
+                    setOtpCode('');
+                  }}
+                  disabled={otpLoading}
+                  className="w-full"
+                >
+                  Usar Outro E-mail
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Tipo e localização</h3>
 
             <div className="space-y-2">
               <Label htmlFor="title">Título do anúncio *</Label>
@@ -843,12 +978,7 @@ export function PropertyWizard() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        )}
 
-        {step === 1 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Características</h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rooms">Quartos *</Label>
@@ -884,16 +1014,6 @@ export function PropertyWizard() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="desc">Descrição *</Label>
-              <Input
-                id="desc"
-                placeholder="Descreva o imóvel..."
-                value={data.description}
-                onChange={(event) => setData((prev) => ({ ...prev, description: event.target.value }))}
-              />
-            </div>
-
             <div className="flex items-center justify-between">
               <Label>Aceita pet</Label>
               <Switch checked={data.acceptsPet} onCheckedChange={(value) => setData((prev) => ({ ...prev, acceptsPet: value }))} />
@@ -903,42 +1023,48 @@ export function PropertyWizard() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Documentação e Preço</h3>
-            <Alert className="border-blue-200 bg-blue-50 text-blue-800">
-              <AlertDescription className="flex flex-col gap-2 mt-1">
-                <p>
-                  <strong>Documentação Necessária:</strong> Para garantir a segurança da plataforma, precisamos validar seu anúncio. Por favor, envie:
-                </p>
-                <div className="pl-4 flex flex-col gap-1">
-                  <p>1) Cópia do RG ou CNH do proprietário responsável.</p>
-                  <p>2) Comprovante de propriedade ou posse (Ex: espelho do IPTU recente, conta de luz, escritura ou contrato de locação principal caso seja sublocação).</p>
-                </div>
-                <p className="text-sm opacity-80">
-                  Formatos aceitos: PDF, JPG ou PNG.
-                </p>
-              </AlertDescription>
-            </Alert>
+            <h3 className="text-lg font-semibold">Imagens</h3>
             <DragDropZone
-              accept=".pdf,image/*"
-              maxFiles={3}
-              onFilesChange={(files) => setData((prev) => ({ ...prev, docs: files }))}
-              label="Arraste contrato/comprovante (PDF ou foto) *"
+              accept="image/*"
+              maxFiles={6}
+              onFilesChange={(files) => setData((prev) => ({ ...prev, photos: files }))}
+              label="Arraste fotos do imóvel ou clique para selecionar (mín. 1) *"
             />
 
-            {previewDocImages.length > 0 && (
+            {previewPhotoImages.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium">Preview dos documentos (imagem)</p>
+                <p className="text-sm font-medium">Preview das fotos</p>
                 <MediaCarousel
-                  items={previewDocImages.map((url, index) => ({ url, alt: `Documento ${index + 1}` }))}
+                  items={previewPhotoImages.map((url, index) => ({ url, alt: `Foto ${index + 1}` }))}
                   onItemClick={(index) => {
-                    setPreviewLightboxImages(previewDocImages);
+                    setPreviewLightboxImages(previewPhotoImages);
                     setPreviewLightboxIndex(index);
                     setPreviewLightboxOpen(true);
                   }}
                 />
               </div>
             )}
+          </div>
+        )}
 
+        {step === 3 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Descrição</h3>
+            <div className="space-y-2">
+              <Label htmlFor="desc">Descrição *</Label>
+              <Input
+                id="desc"
+                placeholder="Descreva o imóvel..."
+                value={data.description}
+                onChange={(event) => setData((prev) => ({ ...prev, description: event.target.value }))}
+              />
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Preço</h3>
             <div className="space-y-2">
               <Label htmlFor="price">Preço mensal (R$) *</Label>
               <Input
@@ -949,6 +1075,17 @@ export function PropertyWizard() {
                 onChange={(event) => setData((prev) => ({ ...prev, price: event.target.value }))}
               />
             </div>
+
+            <div className="flex items-center justify-between">
+              <Label>Sem fiador</Label>
+              <Switch checked={data.noFiador} onCheckedChange={(value) => setData((prev) => ({ ...prev, noFiador: value }))} />
+            </div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Contacto</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
@@ -997,51 +1134,20 @@ export function PropertyWizard() {
                 />
               </div>
             </div>
-
-            <div className="flex items-center justify-between">
-              <Label>Sem fiador</Label>
-              <Switch checked={data.noFiador} onCheckedChange={(value) => setData((prev) => ({ ...prev, noFiador: value }))} />
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Fotos do Imóvel</h3>
-            <DragDropZone
-              accept="image/*"
-              maxFiles={6}
-              onFilesChange={(files) => setData((prev) => ({ ...prev, photos: files }))}
-              label="Arraste fotos do imóvel ou clique para selecionar (mín. 1) *"
-            />
-
-            {previewPhotoImages.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Preview das fotos</p>
-                <MediaCarousel
-                  items={previewPhotoImages.map((url, index) => ({ url, alt: `Foto ${index + 1}` }))}
-                  onItemClick={(index) => {
-                    setPreviewLightboxImages(previewPhotoImages);
-                    setPreviewLightboxIndex(index);
-                    setPreviewLightboxOpen(true);
-                  }}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
 
       <div className="flex justify-between pt-4 border-t">
-        <Button variant="outline" onClick={() => setStep((prev) => prev - 1)} disabled={step === 0} className="gap-1">
+        <Button variant="outline" onClick={() => setStep((prev) => prev - 1)} disabled={step === 0 || otpLoading} className="gap-1">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button onClick={handleNext} className="gap-1" disabled={Boolean(stepError) || loadingCep}>
+          <Button onClick={handleNext} className="gap-1" disabled={loadingCep}>
             Avançar <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={handlePublish} className="gap-1" disabled={Boolean(stepError) || loadingCep}>
+          <Button onClick={handlePublish} className="gap-1" disabled={loadingCep || publishing}>
             {isEditMode ? 'Salvar Edição' : 'Finalizar Anúncio'} <CheckCircle2 className="h-4 w-4" />
           </Button>
         )}

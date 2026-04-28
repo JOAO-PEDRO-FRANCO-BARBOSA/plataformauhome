@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Home, Search, Users, User, Plus, MessageSquare, LogOut, Building2, ShieldCheck } from 'lucide-react';
+import { Home, Search, User, Plus, MessageSquare, LogOut, Building2, ShieldCheck, Users, Heart } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
 import { FeedbackWidget } from './FeedbackWidget';
@@ -21,8 +21,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import logoImg from '@/assets/Logo_Uhome.png';
 
 const navItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: Home },
-  { title: 'Marketplace', url: '/marketplace', icon: Search },
+  { title: 'Home', url: '/dashboard', icon: Home },
+  { title: 'Buscar', url: '/search', icon: Search },
   { title: 'Match', url: '/match', icon: Users },
   { title: 'Mensagens', url: '/messages', icon: MessageSquare },
   { title: 'Meus Imóveis', url: '/my-properties', icon: Building2 },
@@ -152,6 +152,28 @@ export function AppLayout() {
     );
   }
 
+  // Guest layout: Simple header without sidebar and navigation
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="h-14 flex items-center justify-between border-b px-4 gap-3 bg-card sticky top-0 z-40">
+          <button onClick={() => navigate('/')} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <img src={logoImg} alt="Uhome" className="h-7 w-7 object-contain" />
+            <span className="font-bold text-primary">Uhome</span>
+          </button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => navigate('/login')}>Entrar</Button>
+            <Button size="sm" onClick={() => navigate('/register')}>Cadastrar</Button>
+          </div>
+        </header>
+        <main className="flex-1 p-4 md:p-6 w-full">
+          <Outlet />
+        </main>
+        <AppFooter />
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -163,20 +185,18 @@ export function AppLayout() {
               <img src={logoImg} alt="Uhome" className="h-7 w-7 object-contain md:hidden" />
               <span className="font-bold text-primary md:hidden">Uhome</span>
             </div>
-            {isLoggedIn && (
-              <div className="flex items-center gap-2">
-                {isMobile ? (
-                  <Button size="icon" variant="default" onClick={() => navigate('/host/new')} className="h-8 w-8">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={() => navigate('/host/new')} className="gap-1.5">
-                    <Plus className="h-4 w-4" /> Anunciar Imóvel / Vaga
-                  </Button>
-                )}
-                <UserMenu />
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {isMobile ? (
+                <Button size="icon" variant="default" onClick={() => navigate('/host/new')} className="h-8 w-8">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => navigate('/host/new')} className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Anunciar Imóvel / Vaga
+                </Button>
+              )}
+              <UserMenu />
+            </div>
           </header>
           <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6"><Outlet /></main>
           <AppFooter />

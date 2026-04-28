@@ -82,19 +82,20 @@ const Index = () => {
               </div>
             </div>
             <h1 className="text-balance text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Encontre seu próximo lar universitário sem dor de cabeça.
+              Encontre moradia perto da UFU sem dor de cabeça.
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-slate-600 sm:text-xl">
-              O Uhome conecta estudantes às melhores repúblicas, pensões e apartamentos próximos à universidade. Tudo em um só lugar.
+              Encontre seu lugar em minutos.
             </p>
 
-            <div className="mt-10 flex flex-col items-center justify-center">
+            <div className="mt-10 flex flex-col items-center justify-center gap-3">
               <Link
-                to="/signup"
+                to="/search"
                 className="inline-flex items-center justify-center rounded-full bg-purple-600 px-8 py-4 text-lg font-bold text-white shadow-lg transition hover:bg-purple-700"
               >
-                Quero Participar
+                Encontrar moradia
               </Link>
+              <p className="text-sm font-medium text-slate-500">Comece explorando quartos, repúblicas e apartamentos agora.</p>
             </div>
           </div>
           <div className="mx-auto mt-10 h-px w-full max-w-5xl bg-gradient-to-r from-transparent via-purple-300/70 to-transparent" />

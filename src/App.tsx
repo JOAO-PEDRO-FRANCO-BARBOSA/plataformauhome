@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
+import Search from "@/pages/Search";
 import Marketplace from "@/pages/Marketplace";
 import PropertyDetails from "@/pages/PropertyDetails";
 import MatchPage from "@/pages/MatchPage";
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/search" element={<Search />} />
                 <Route path="/marketplace" element={<Marketplace />} />
                 <Route path="/marketplace/:id" element={<PropertyDetails />} />
                 <Route path="/match" element={<MatchPage />} />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,15 @@ import { toast } from 'sonner';
 import { Camera, Upload, Loader2, Trash2, Check, Mail, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+interface OwnedProperty {
+  id: string;
+  title: string;
+  images: string[];
+  price: number;
+  campus: string | null;
+  address: string | null;
+}
+
 export default function Profile() {
   const { profile, loading, updateProfile, isSaving } = useProfile();
   const { user, refreshProfile, logout } = useAuth();
@@ -24,6 +33,8 @@ export default function Profile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [ownedProperties, setOwnedProperties] = useState<OwnedProperty[]>([]);
+  const [ownedLoading, setOwnedLoading] = useState(false);
 
   const updateHabit = (key: string, value: any) => {
     updateProfile({ habits: { ...profile.habits, [key]: value } });
@@ -129,6 +140,38 @@ export default function Profile() {
   };
 
   const habits = profile.habits || {};
+
+  useEffect(() => {
+    const loadOwnedProperties = async () => {
+      if (!user) return;
+
+      setOwnedLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, title, images, price, campus, address')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        setOwnedProperties((data ?? []).map((property) => ({
+          id: property.id,
+          title: property.title ?? '',
+          images: (property.images as string[]) ?? [],
+          price: Number(property.price ?? 0),
+          campus: property.campus ?? null,
+          address: property.address ?? null,
+        })));
+      } catch (error: any) {
+        toast.error(error?.message || 'Não foi possível carregar as propriedades publicadas.');
+      } finally {
+        setOwnedLoading(false);
+      }
+    };
+
+    loadOwnedProperties();
+  }, [user]);
 
   if (loading) {
     return (
@@ -306,6 +349,50 @@ export default function Profile() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {ownedProperties.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Minhas propriedades publicadas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ownedLoading ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[1, 2].map((index) => (
+                  <Skeleton key={index} className="h-40 rounded-2xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {ownedProperties.map((property) => (
+                  <button
+                    key={property.id}
+                    type="button"
+                    onClick={() => navigate(`/my-properties/${property.id}`)}
+                    className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="aspect-[16/9] bg-muted">
+                      <img
+                        src={property.images[0] || '/placeholder.svg'}
+                        alt={property.title}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    </div>
+                    <div className="space-y-1 p-4">
+                      <h3 className="font-semibold leading-tight">{property.title}</h3>
+                      <p className="text-sm text-muted-foreground">{property.address || 'Sem endereço'}</p>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-semibold text-primary">R$ {property.price.toLocaleString('pt-BR')}</span>
+                        <span className="text-muted-foreground">{property.campus || 'Campus não definido'}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Danger Zone */}
       <Card className="border-destructive/50">

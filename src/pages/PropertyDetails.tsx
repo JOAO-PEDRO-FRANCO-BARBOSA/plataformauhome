@@ -9,9 +9,12 @@ import { ContactModal } from '@/components/ContactModal';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { useMatches } from '@/hooks/useMatches';
+import { HabitBadges } from '@/components/HabitBadges';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, MapPin, BedDouble, PawPrint,
   Wifi, Car, Dumbbell, Shield, Sofa, Trees, CookingPot, BookOpen,
+  Users,
 } from 'lucide-react';
 
 const amenityIcons: Record<string, React.ElementType> = {
@@ -30,6 +33,7 @@ export default function PropertyDetails() {
   const [imgIndex, setImgIndex] = useState(0);
   const [contactOpen, setContactOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const { available, connect } = useMatches();
 
   useEffect(() => {
     if (!id) return;
@@ -83,6 +87,9 @@ export default function PropertyDetails() {
   const images = property.images;
   const prev = () => setImgIndex((i) => (i === 0 ? images.length - 1 : i - 1));
   const next = () => setImgIndex((i) => (i === images.length - 1 ? 0 : i + 1));
+  const compatibleProfiles = available
+    .filter((match) => !property.campus || match.student.campus === property.campus)
+    .slice(0, 3);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -142,6 +149,52 @@ export default function PropertyDetails() {
               })}
             </div>
           </div>
+
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Perfis compatíveis
+                  </h2>
+                  <p className="text-sm text-muted-foreground">Pessoas com perfil próximo a esta moradia.</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/match')}>
+                  Ver mais
+                </Button>
+              </div>
+
+              {compatibleProfiles.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Ainda não há sugestões para este imóvel.</p>
+              ) : (
+                <div className="space-y-3">
+                  {compatibleProfiles.map((match) => (
+                    <div key={match.id} className="flex items-start gap-3 rounded-xl border bg-card p-3">
+                      <img
+                        src={match.student.avatar}
+                        alt={match.student.name}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-sm">{match.student.name}</p>
+                            <p className="text-xs text-muted-foreground">{match.student.course}</p>
+                          </div>
+                          <Badge variant="secondary">{match.compatibility}%</Badge>
+                        </div>
+                        <HabitBadges habits={match.student.habits as any} size="sm" />
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => connect(match.student.id)}>
+                          Conectar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         <div className="hidden lg:block w-72 shrink-0">
           <Card className="sticky top-4">

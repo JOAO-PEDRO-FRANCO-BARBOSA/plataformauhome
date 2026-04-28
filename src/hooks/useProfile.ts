@@ -17,6 +17,7 @@ export interface ProfileData {
   search_type: string;
   price_range_min: number;
   price_range_max: number;
+  is_lister?: boolean;
 }
 
 const defaultProfile: ProfileData = {
@@ -34,6 +35,7 @@ const defaultProfile: ProfileData = {
   search_type: 'republica',
   price_range_min: 400,
   price_range_max: 800,
+  is_lister: false,
 };
 
 export function useProfile() {
@@ -63,6 +65,7 @@ export function useProfile() {
           search_type: data.search_type ?? 'republica',
           price_range_min: data.price_range_min ?? 400,
           price_range_max: data.price_range_max ?? 800,
+          is_lister: data.is_lister ?? false,
         });
       }
       setLoading(false);
@@ -103,6 +106,7 @@ export function useProfile() {
       if (updates.search_type !== undefined) dbUpdates.search_type = updates.search_type;
       if (updates.price_range_min !== undefined) dbUpdates.price_range_min = updates.price_range_min;
       if (updates.price_range_max !== undefined) dbUpdates.price_range_max = updates.price_range_max;
+      if (updates.is_lister !== undefined) dbUpdates.is_lister = updates.is_lister;
 
       if (Object.keys(dbUpdates).length > 0) {
         await supabase.from('profiles').update(dbUpdates).eq('id', user.id);
