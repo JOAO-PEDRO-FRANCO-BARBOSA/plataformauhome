@@ -9,7 +9,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { PropertyCard } from '@/components/PropertyCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { Search, MapPinned, BedDouble, Building2 } from 'lucide-react';
+import { Search, MapPinned, BedDouble, Building2, Users } from 'lucide-react';
 import { MarketplacePropertyPanel } from '@/components/MarketplacePropertyPanel';
 import { Property } from '@/types';
 
@@ -142,6 +142,32 @@ export default function Dashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* CTA: Encontrar colegas de quarto */}
+      <section className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 via-white to-purple-100/60 p-5 sm:p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1 flex-1">
+            <p className="text-sm font-semibold text-purple-700 flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Conexões
+            </p>
+            <h2 className="text-2xl md:text-3xl font-bold">Encontre colegas de quarto</h2>
+            <p className="text-muted-foreground">Conecte-se com outros estudantes e encontre sua próxima república com pessoas que combinam com você.</p>
+          </div>
+          <Button asChild className="hidden sm:inline-flex gap-2">
+            <Link to="/match">
+              <Users className="w-4 h-4" />
+              Explorar
+            </Link>
+          </Button>
+        </div>
+        <Button asChild className="w-full mt-4 sm:hidden gap-2">
+          <Link to="/match">
+            <Users className="w-4 h-4" />
+            Explorar colegas
+          </Link>
+        </Button>
+      </section>
 
       <div>
         <h2 className="text-lg font-semibold mb-3">Imóveis Favoritos</h2>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Home, Search, User, Plus, MessageSquare, LogOut, Building2, ShieldCheck, Users, Heart } from 'lucide-react';
+import { Home, Search, User, Plus, MessageSquare, LogOut, Building2, ShieldCheck, Heart } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { AppFooter } from './AppFooter';
 import { FeedbackWidget } from './FeedbackWidget';
@@ -20,10 +20,18 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import logoImg from '@/assets/Logo_Uhome.png';
 
-const navItems = [
+// Itens principais da navegação (5 abas)
+const mobileNavItems = [
+  { title: 'Início', url: '/dashboard', icon: Home },
+  { title: 'Buscar', url: '/search', icon: Search },
+  { title: 'Mensagens', url: '/messages', icon: MessageSquare },
+  { title: 'Perfil', url: '/profile', icon: User },
+];
+
+// Sidebar desktop mantém mais opções
+const desktopNavItems = [
   { title: 'Home', url: '/dashboard', icon: Home },
   { title: 'Buscar', url: '/search', icon: Search },
-  { title: 'Match', url: '/match', icon: Users },
   { title: 'Mensagens', url: '/messages', icon: MessageSquare },
   { title: 'Meus Imóveis', url: '/my-properties', icon: Building2 },
   { title: 'Perfil', url: '/profile', icon: User },
@@ -34,8 +42,8 @@ function DesktopSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const sidebarItems = profile?.role === 'admin'
-    ? [...navItems, { title: 'Admin', url: '/admin', icon: ShieldCheck }]
-    : navItems;
+    ? [...desktopNavItems, { title: 'Admin', url: '/admin', icon: ShieldCheck }]
+    : desktopNavItems;
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -66,14 +74,51 @@ function DesktopSidebar() {
 }
 
 function MobileBottomNav() {
+  const navigate = useNavigate();
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t flex items-center justify-around h-16 md:hidden">
-      {navItems.map((item) => (
-        <NavLink key={item.title} to={item.url} end className="flex flex-col items-center gap-0.5 text-muted-foreground text-xs py-2 px-3" activeClassName="text-primary font-medium">
-          <item.icon className="w-5 h-5" />
-          <span>{item.title}</span>
-        </NavLink>
-      ))}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t flex items-center justify-between h-20 md:hidden px-2">
+      {/* Renderizar primeira metade das abas (antes do botão central) */}
+      {mobileNavItems.slice(0, 2).map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink
+            key={item.url}
+            to={item.url}
+            end
+            className="flex flex-col items-center gap-1 text-muted-foreground text-xs py-2 px-3 flex-1"
+            activeClassName="text-primary font-medium"
+          >
+            <Icon className="w-5 h-5" />
+            <span className="text-xs">{item.title}</span>
+          </NavLink>
+        );
+      })}
+
+      {/* Botão Central Destacado: + para adicionar imóvel */}
+      <button
+        onClick={() => navigate('/host/new')}
+        className="flex items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg hover:shadow-xl transition-all w-14 h-14 -mt-7 flex-shrink-0"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      {/* Renderizar segunda metade das abas (depois do botão central) */}
+      {mobileNavItems.slice(2, 4).map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink
+            key={item.url}
+            to={item.url}
+            end
+            className="flex flex-col items-center gap-1 text-muted-foreground text-xs py-2 px-3 flex-1"
+            activeClassName="text-primary font-medium"
+          >
+            <Icon className="w-5 h-5" />
+            <span className="text-xs">{item.title}</span>
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }
@@ -198,7 +243,7 @@ export function AppLayout() {
               <UserMenu />
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6"><Outlet /></main>
+          <main className="flex-1 p-4 md:p-6 pb-24 md:pb-6"><Outlet /></main>
           <AppFooter />
         </div>
         {isMobile && <MobileBottomNav />}
